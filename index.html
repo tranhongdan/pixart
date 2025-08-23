@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PixArt</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            overflow: hidden;
+            touch-action: none;
+        }
+        .action-btn {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, background-color 0.2s, opacity 0.2s;
+        }
+        .action-btn:not(:disabled):hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .action-btn.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #drawing-container {
+            cursor: default;
+            touch-action: pan-x pan-y;
+            position: relative;
+        }
+        #drawing-area {
+            display: grid;
+            transform-origin: top left;
+            transition: transform 0.2s ease-out, opacity 0.3s ease-in-out;
+            position: relative;
+            z-index: 10;
+        }
+        .grid-cell {
+            border: 0.05px solid #e5e7eb;
+        }
+        #drawing-container::-webkit-scrollbar {
+            display: none;
+        }
+        #drawing-container {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .toolbar {
+            position: fixed;
+            background-color: rgba(31, 41, 55, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 1rem;
+            padding: 1rem;
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #bottom-toolbar {
+            bottom: 1rem;
+            left: 50%;
+            transform: translate(-50%, 150%);
+        }
+        #right-toolbar {
+            top: 50%;
+            right: 1rem;
+            transform: translate(150%, -50%);
+        }
+        #left-toolbar {
+            top: 50%;
+            left: 1rem;
+            transform: translate(-150%, -50%);
+        }
+        .toolbar.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #bottom-toolbar.visible {
+             transform: translate(-50%, 0);
+        }
+        #right-toolbar.visible {
+             transform: translate(0, -50%);
+        }
+        #left-toolbar.visible {
+             transform: translate(0, -50%);
+        }
+        .toolbar-trigger {
+            position: fixed;
+            background-color: rgba(31, 41, 55, 0.7);
+            color: white;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            z-index: 49;
+            transition: background-color 0.2s;
+        }
+        .toolbar-trigger:hover {
+            background-color: rgba(31, 41, 55, 0.9);
+        }
+        #bottom-trigger {
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-top-left-radius: 0.5rem;
+            border-top-right-radius: 0.5rem;
+        }
+        #right-trigger {
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            border-top-left-radius: 0.5rem;
+            border-bottom-left-radius: 0.5rem;
+        }
+        #left-trigger {
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            border-top-right-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+        }
+        #draggable-color-mixer {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            z-index: 100;
+            cursor: grab;
+            padding: 0.75rem;
+            background-color: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 1rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease-in-out;
+        }
+        #draggable-color-mixer:active {
+            cursor: grabbing;
+        }
+        #draggable-color-mixer.zoomed {
+            transform: scale(2);
+        }
+        #image-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+        #image-wrapper {
+            position: absolute;
+            border: 2px dashed #3b82f6;
+            cursor: move;
+            pointer-events: all;
+        }
+        #pasted-image {
+            width: 100%;
+            height: 100%;
+            display: block;
+            user-select: none;
+        }
+        .resize-handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #3b82f6;
+            border: 2px solid white;
+            border-radius: 50%;
+            z-index: 20;
+        }
+        .resize-handle.br {
+            bottom: -6px;
+            right: -6px;
+            cursor: se-resize;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen">
+
+    <!-- Drawing Area -->
+    <div id="drawing-container" class="w-full h-full overflow-auto bg-gray-200">
+        <div id="image-layer"></div>
+        <div id="drawing-area"></div>
+    </div>
+
+    <!-- Draggable Color Mixer -->
+    <div id="draggable-color-mixer">
+        <div id="current-color" class="w-14 h-14 rounded-lg border-2 border-gray-300 shadow-inner" style="background-color: #ffffff;"></div>
+    </div>
+
+    <!-- Toolbar Triggers -->
+    <div id="bottom-trigger" class="toolbar-trigger">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"/></svg>
+    </div>
+    <div id="right-trigger" class="toolbar-trigger">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/></svg>
+    </div>
+    <div id="left-trigger" class="toolbar-trigger">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/></svg>
+    </div>
+
+    <!-- Bottom Toolbar: Colors -->
+    <div id="bottom-toolbar" class="toolbar flex flex-wrap items-center justify-center gap-4">
+        <div class="flex flex-wrap justify-center gap-3" id="color-palette">
+            <button data-color="red" class="color-swatch w-12 h-12 rounded-full border-2 border-white shadow-md" style="background-color: #ef4444;"></button>
+            <button data-color="green" class="color-swatch w-12 h-12 rounded-full border-2 border-white shadow-md" style="background-color: #22c55e;"></button>
+            <button data-color="blue" class="color-swatch w-12 h-12 rounded-full border-2 border-white shadow-md" style="background-color: #3b82f6;"></button>
+            <button data-color="cyan" class="color-swatch w-12 h-12 rounded-full border-2 border-white shadow-md" style="background-color: #22d3ee;"></button>
+            <button data-color="magenta" class="color-swatch w-12 h-12 rounded-full border-2 border-white shadow-md" style="background-color: #d946ef;"></button>
+            <button data-color="yellow" class="color-swatch w-12 h-12 rounded-full border-2 border-white shadow-md" style="background-color: #facc15;"></button>
+            <button data-color="black" class="color-swatch w-12 h-12 rounded-full border-2 border-white shadow-md" style="background-color: #1f2937;"></button>
+            <button data-color="white" class="color-swatch w-12 h-12 rounded-full border-2 border-gray-300 shadow-md" style="background-color: #ffffff;"></button>
+        </div>
+        <button id="clear-brush" title="Làm sạch cọ" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-eraser-fill" viewBox="0 0 16 16"><path d="M8.086 2.207a2 2 0 0 1 2.828 0l3.879 3.879a2 2 0 0 1 0 2.828l-5.5 5.5A2 2 0 0 1 7.879 15H5.12a2 2 0 0 1-1.414-.586l-2.5-2.5a2 2 0 0 1 0-2.828l6.879-6.879zm.66 11.34L3.453 8.254 1.914 9.793a1 1 0 0 0 0 1.414l2.5 2.5a1 1 0 0 0 .707.293H7.88a1 1 0 0 0 .707-.293l.16-.16z"/></svg>
+        </button>
+    </div>
+
+    <!-- Left Toolbar: File & Image Operations -->
+    <div id="left-toolbar" class="toolbar flex flex-col items-center justify-center gap-4">
+        <button id="save-project-btn" title="Lưu Project" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-file-earmark-arrow-down" viewBox="0 0 16 16"><path d="M8.5 6.5a.5.5 0 0 0-1 0v3.793L6.354 9.146a.5.5 0 1 0-.708.708l2 2a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0-.708-.708L8.5 10.293V6.5z"/><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 1.5v2A1.5 1.5 0 0 0 11 5h2V2.47l-3.5-3.5zM4 1h5.5v4A1.5 1.5 0 0 0 11 6.5h.5v7.5a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V2a.5.5 0 0 1 .5-.5z"/></svg>
+        </button>
+        <button id="load-project-btn" title="Tải Project" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-file-earmark-arrow-up" viewBox="0 0 16 16"><path d="M8.5 11.5a.5.5 0 0 1-1 0V7.707L6.354 8.854a.5.5 0 1 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 7.707V11.5z"/><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 1.5v2A1.5 1.5 0 0 0 11 5h2V2.47l-3.5-3.5zM4 1h5.5v4A1.5 1.5 0 0 0 11 6.5h.5v7.5a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V2a.5.5 0 0 1 .5-.5z"/></svg>
+        </button>
+        <button id="save-image-btn" title="Lưu ảnh PNG" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-image" viewBox="0 0 16 16"><path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/><path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/></svg>
+        </button>
+        <button id="delete-image-btn" title="Xóa ảnh nền" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+        </button>
+        <button id="toggle-layer-btn" title="Chuyển Lớp Ảnh" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md hidden">
+            <svg id="layer-back-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi" viewBox="0 0 16 16">
+                <!-- Grid lines (behind) -->
+                <path d="M1 5h14v1H1V5zm0 5h14v1H1v-1zM5 1v14h1V1H5zm5 0v14h1V1h-1z" fill-opacity="0.5"/>
+                <!-- Image shape (in front) -->
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M14 3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h12zM2 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H2z"/>
+            </svg>
+            <svg id="layer-front-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi hidden" viewBox="0 0 16 16">
+                <!-- Image shape (behind) -->
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M14 3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h12zM2 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H2z" fill-opacity="0.5"/>
+                <!-- Grid lines (in front) -->
+                <path d="M1 5h14v1H1V5zm0 5h14v1H1v-1zM5 1v14h1V1H5zm5 0v14h1V1h-1z"/>
+            </svg>
+        </button>
+        <button id="fit-canvas-btn" title="Vừa màn hình" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrows-angle-contract" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M.172 15.828a.5.5 0 0 0 .707 0l4.096-4.096V14.5a.5.5 0 1 0 1 0v-3.975a.5.5 0 0 0-.5-.5H1.5a.5.5 0 0 0 0 1h2.768L.172 15.121a.5.5 0 0 0 0 .707zM15.828.172a.5.5 0 0 0-.707 0L11.025 4.268V1.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H14.5a.5.5 0 0 0 0-1h-2.768L15.828.879a.5.5 0 0 0 0-.707z"/>
+            </svg>
+        </button>
+        <input type="file" id="load-project-input" accept=".pixart" class="hidden">
+    </div>
+
+    <!-- Right Toolbar: Grid & View Operations -->
+    <div id="right-toolbar" class="toolbar flex flex-col items-center justify-center gap-4">
+        <button id="merge-cells" title="Gộp toàn bộ ô" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13A1.5 1.5 0 0 1 14.5 16h-13A1.5 1.5 0 0 1 0 14.5v-13zM1.5 1a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5h-13z M7.5 1v14h1V1h-1z M1 7.5h14v1H1v-1z"/>
+            </svg>
+        </button>
+        <button id="split-cells" title="Chia toàn bộ ô" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-grid-3x3" viewBox="0 0 16 16">
+                 <path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13A1.5 1.5 0 0 1 14.5 16h-13A1.5 1.5 0 0 1 0 14.5v-13zM1.5 1a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5h-13zM5.5 1v14h1V1h-1zm4 0v14h1V1h-1zM1 5.5h14v1H1v-1zm0 4h14v1H1v-1z"/>
+            </svg>
+        </button>
+        <button id="picker-mode" title="Chế độ Chọn màu" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-eyedropper" viewBox="0 0 16 16">
+                <path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708l-2-2zM2 12.707l7-7L10.293 7l-7 7H2v-1.293z"/>
+            </svg>
+        </button>
+        <button id="pan-mode" title="Chế độ Kéo" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrows-move" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M7.646.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 1.707V5.5a.5.5 0 0 1-1 0V1.707L6.354 2.854a.5.5 0 1 1-.708-.708l2-2zM8 10a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 0 1 .708-.708L7.5 14.293V10.5A.5.5 0 0 1 8 10zM.146 8.354a.5.5 0 0 1 0-.708l2-2a.5.5 0 1 1 .708.708L1.707 7.5H5.5a.5.5 0 0 1 0 1H1.707l1.147 1.146a.5.5 0 0 1-.708.708l-2-2zM10 8a.5.5 0 0 1 .5-.5h3.793l-1.147-1.146a.5.5 0 0 1 .708-.708l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L14.293 8.5H10.5A.5.5 0 0 1 10 8z"/></svg>
+        </button>
+        <button id="zoom-in-mode" title="Chế độ Phóng to" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                <path d="M7 4v2h2v1h-2v2H6V7H4V6h2V4h1z"/>
+            </svg>
+        </button>
+         <button id="zoom-out-mode" title="Chế độ Thu nhỏ" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/><path d="M4 6.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5z"/></svg>
+        </button>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const GRID_COLS = 512;
+        const GRID_ROWS = 288;
+        const GRID_LEVELS = [
+            { cols: 512, rows: 288, span: 1 },
+            { cols: 256, rows: 144, span: 2 },
+            { cols: 128, rows: 72, span: 4 },
+            { cols: 64, rows: 36, span: 8 },
+            { cols: 32, rows: 18, span: 16 },
+            { cols: 16, rows: 9, span: 32 }
+        ];
+        let currentGridLevel = 3;
+        let gridState = [];
+        let zoomLevel = 1.0;
+        const ZOOM_STEP = 1.2;
+        let currentMode = 'paint';
+        let hasBackgroundImage = false;
+        let isDrawingVisible = true;
+        let isImageInFront = false;
+
+        // --- COLORS ---
+        const baseColors = {
+            red: [239, 68, 68],
+            green: [34, 197, 94],
+            blue: [59, 130, 246],
+            cyan: [34, 211, 238],
+            magenta: [217, 70, 239],
+            yellow: [250, 204, 21],
+            black: [31, 41, 55],
+            white: [255, 255, 255]
+        };
+        let currentMixedColor = 'rgb(255, 255, 255)';
+        let mixCount = 0;
+
+        // --- DOM ELEMENTS ---
+        const colorPalette = document.getElementById('color-palette');
+        const currentColorDisplay = document.getElementById('current-color');
+        const drawingArea = document.getElementById('drawing-area');
+        const drawingContainer = document.getElementById('drawing-container');
+        const clearBrushBtn = document.getElementById('clear-brush');
+        const bottomToolbar = document.getElementById('bottom-toolbar');
+        const rightToolbar = document.getElementById('right-toolbar');
+        const leftToolbar = document.getElementById('left-toolbar');
+        const bottomTrigger = document.getElementById('bottom-trigger');
+        const rightTrigger = document.getElementById('right-trigger');
+        const leftTrigger = document.getElementById('left-trigger');
+        const draggableColorMixer = document.getElementById('draggable-color-mixer');
+        const imageLayer = document.getElementById('image-layer');
+        
+        // File & Image Operations
+        const saveImageBtn = document.getElementById('save-image-btn');
+        const saveProjectBtn = document.getElementById('save-project-btn');
+        const loadProjectBtn = document.getElementById('load-project-btn');
+        const loadProjectInput = document.getElementById('load-project-input');
+        const deleteImageBtn = document.getElementById('delete-image-btn');
+        const toggleLayerBtn = document.getElementById('toggle-layer-btn');
+        const layerBackIcon = document.getElementById('layer-back-icon');
+        const layerFrontIcon = document.getElementById('layer-front-icon');
+        const fitCanvasBtn = document.getElementById('fit-canvas-btn');
+
+        // Mode Buttons
+        const modeButtons = {
+            picker: document.getElementById('picker-mode'),
+            pan: document.getElementById('pan-mode'),
+            zoomIn: document.getElementById('zoom-in-mode'),
+            zoomOut: document.getElementById('zoom-out-mode')
+        };
+        const gridButtons = {
+             merge: document.getElementById('merge-cells'),
+             split: document.getElementById('split-cells')
+        }
+        
+        // --- COLOR FUNCTIONS ---
+        function updateCurrentColorDisplay(rgbStr) {
+            currentColorDisplay.style.backgroundColor = rgbStr;
+        }
+
+        function mixColor(newColorRgb) {
+            let oldRgb;
+            if (mixCount === 0) {
+                oldRgb = [255, 255, 255]; 
+            } else {
+                oldRgb = currentMixedColor.match(/\d+/g).map(Number);
+            }
+            
+            const mixed = [
+                (oldRgb[0] * mixCount + newColorRgb[0]) / (mixCount + 1),
+                (oldRgb[1] * mixCount + newColorRgb[1]) / (mixCount + 1),
+                (oldRgb[2] * mixCount + newColorRgb[2]) / (mixCount + 1)
+            ].map(Math.round);
+
+            mixCount++;
+            currentMixedColor = `rgb(${mixed[0]}, ${mixed[1]}, ${mixed[2]})`;
+            updateCurrentColorDisplay(currentMixedColor);
+        }
+        
+        function clearBrush() {
+            currentMixedColor = 'rgb(255, 255, 255)';
+            mixCount = 0;
+            updateCurrentColorDisplay(currentMixedColor);
+        }
+
+        // --- GRID FUNCTIONS ---
+        function initializeGridState() {
+            gridState = [];
+            for (let r = 0; r < GRID_ROWS; r++) {
+                gridState[r] = [];
+                for (let c = 0; c < GRID_COLS; c++) {
+                    gridState[r][c] = { color: 'rgb(255, 255, 255)' };
+                }
+            }
+        }
+
+        function renderGrid() {
+            const level = GRID_LEVELS[currentGridLevel];
+            const cols = level.cols;
+            const rows = level.rows;
+            const span = level.span;
+
+            drawingArea.innerHTML = '';
+            drawingArea.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            drawingArea.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+            
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const originalRow = r * span;
+                    const originalCol = c * span;
+                    const cellData = gridState[originalRow][originalCol];
+                    
+                    const cell = document.createElement('div');
+                    cell.classList.add('grid-cell');
+                    cell.dataset.row = originalRow;
+                    cell.dataset.col = originalCol;
+                    const isWhite = cellData.color === 'rgb(255, 255, 255)';
+                    cell.style.backgroundColor = (isWhite && hasBackgroundImage && !isImageInFront) ? 'rgba(255, 255, 255, 0.5)' : cellData.color;
+                    drawingArea.appendChild(cell);
+                }
+            }
+            updateButtonStates();
+        }
+
+        function globalSplit() {
+            if (currentGridLevel > 0) {
+                currentGridLevel--;
+                renderGrid();
+            }
+        }
+
+        function globalMerge() {
+            if (currentGridLevel < GRID_LEVELS.length - 1) {
+                const oldLevel = GRID_LEVELS[currentGridLevel];
+                const newLevel = GRID_LEVELS[currentGridLevel + 1];
+
+                for (let r = 0; r < newLevel.rows; r++) {
+                    for (let c = 0; c < newLevel.cols; c++) {
+                        const startRow = r * newLevel.span;
+                        const startCol = c * newLevel.span;
+                        
+                        const colors = [];
+                        for(let i = 0; i < oldLevel.span * 2; i += oldLevel.span) {
+                            for(let j = 0; j < oldLevel.span * 2; j += oldLevel.span) {
+                                const subRow = startRow + i;
+                                const subCol = startCol + j;
+                                if(gridState[subRow]?.[subCol]) {
+                                    colors.push(gridState[subRow][subCol].color);
+                                }
+                            }
+                        }
+
+                        const nonWhiteColors = colors.filter(color => color !== 'rgb(255, 255, 255)');
+                        let dominantColor = 'rgb(255, 255, 255)';
+
+                        if (nonWhiteColors.length > 0) {
+                            const colorCounts = {};
+                            nonWhiteColors.forEach(color => {
+                                colorCounts[color] = (colorCounts[color] || 0) + 1;
+                            });
+                            dominantColor = Object.keys(colorCounts).reduce((a, b) => colorCounts[a] > colorCounts[b] ? a : b);
+                        } 
+                        
+                        for (let i = 0; i < newLevel.span; i++) {
+                            for (let j = 0; j < newLevel.span; j++) {
+                                const targetRow = startRow + i;
+                                const targetCol = startCol + j;
+                                if (gridState[targetRow]?.[targetCol]) {
+                                    gridState[targetRow][targetCol].color = dominantColor;
+                                }
+                            }
+                        }
+                    }
+                }
+                currentGridLevel++;
+                renderGrid();
+            }
+        }
+        
+        function updateButtonStates() {
+            gridButtons.split.disabled = currentGridLevel === 0;
+            gridButtons.merge.disabled = currentGridLevel === GRID_LEVELS.length - 1;
+        }
+
+        // --- UI MODE & VIEW FUNCTIONS ---
+        function setMode(newMode) {
+            currentMode = newMode;
+            Object.values(modeButtons).forEach(btn => btn.classList.remove('active'));
+            if(modeButtons[newMode]) {
+                 modeButtons[newMode].classList.add('active');
+            }
+            if (newMode === 'picker') drawingContainer.style.cursor = 'crosshair';
+            else if (newMode === 'zoomIn') drawingContainer.style.cursor = 'zoom-in';
+            else if (newMode === 'zoomOut') drawingContainer.style.cursor = 'zoom-out';
+            else if (newMode === 'pan') drawingContainer.style.cursor = 'grab';
+            else drawingContainer.style.cursor = 'pointer';
+        }
+
+        function handleZoom(eventPoint, direction) {
+            const rect = drawingContainer.getBoundingClientRect();
+            let mouseX, mouseY;
+
+            if (eventPoint) {
+                mouseX = eventPoint.clientX - rect.left;
+                mouseY = eventPoint.clientY - rect.top;
+            } else {
+                mouseX = drawingContainer.clientWidth / 2;
+                mouseY = drawingContainer.clientHeight / 2;
+            }
+
+            const pointX = (drawingContainer.scrollLeft + mouseX) / zoomLevel;
+            const pointY = (drawingContainer.scrollTop + mouseY) / zoomLevel;
+            
+            const newZoomLevel = direction === 'in' ? zoomLevel * ZOOM_STEP : zoomLevel / ZOOM_STEP;
+            zoomLevel = Math.max(0.1, Math.min(newZoomLevel, 20));
+
+            drawingArea.style.transform = `scale(${zoomLevel})`;
+            
+            drawingContainer.scrollLeft = (pointX * zoomLevel) - mouseX;
+            drawingContainer.scrollTop = (pointY * zoomLevel) - mouseY;
+        }
+        
+        // --- FILE & IMAGE OPERATIONS ---
+        function saveImage() {
+            const canvas = document.createElement('canvas');
+            const saveWidth = 2560;
+            const saveHeight = 1440;
+            canvas.width = saveWidth;
+            canvas.height = saveHeight;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.imageSmoothingEnabled = false;
+
+            const scaleX = saveWidth / GRID_COLS;
+            const scaleY = saveHeight / GRID_ROWS;
+
+            for (let r = 0; r < GRID_ROWS; r++) {
+                for (let c = 0; c < GRID_COLS; c++) {
+                    if (gridState[r][c].color !== 'rgb(255, 255, 255)') {
+                        ctx.fillStyle = gridState[r][c].color;
+                        ctx.fillRect(c * scaleX, r * scaleY, scaleX, scaleY);
+                    }
+                }
+            }
+
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.lineWidth = 1;
+
+            for (let c = 1; c < GRID_COLS; c++) {
+                ctx.beginPath();
+                ctx.moveTo(c * scaleX, 0);
+                ctx.lineTo(c * scaleX, saveHeight);
+                ctx.stroke();
+            }
+
+            for (let r = 1; r < GRID_ROWS; r++) {
+                ctx.beginPath();
+                ctx.moveTo(0, r * scaleY);
+                ctx.lineTo(saveWidth, r * scaleY);
+                ctx.stroke();
+            }
+
+            const link = document.createElement('a');
+            link.download = 'pixart.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function saveProject() {
+            try {
+                const projectData = JSON.stringify(gridState);
+                const blob = new Blob([projectData], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = 'project.pixart';
+                link.href = url;
+                link.click();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error("Error saving project:", error);
+            }
+        }
+
+        function loadProject() {
+            loadProjectInput.click();
+        }
+
+        function handleFileLoad(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const projectData = JSON.parse(e.target.result);
+                    if (Array.isArray(projectData) && Array.isArray(projectData[0]) && projectData[0][0].hasOwnProperty('color')) {
+                        gridState = projectData;
+                        currentGridLevel = 0;
+                        renderGrid();
+                    } else {
+                        throw new Error("Invalid file format.");
+                    }
+                } catch (error) {
+                    console.error("Error loading project:", error);
+                }
+            };
+            reader.readAsText(file);
+            loadProjectInput.value = '';
+        }
+
+        function handlePaste(event) {
+            const items = event.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    createPastedImage(blob);
+                    break;
+                }
+            }
+        }
+
+        function createPastedImage(blob) {
+            deleteImage();
+            const url = URL.createObjectURL(blob);
+            
+            const imageWrapper = document.createElement('div');
+            imageWrapper.id = 'image-wrapper';
+            
+            const img = document.createElement('img');
+            img.id = 'pasted-image';
+            img.src = url;
+            
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'resize-handle br';
+            
+            imageWrapper.appendChild(img);
+            imageWrapper.appendChild(resizeHandle);
+            imageLayer.appendChild(imageWrapper);
+            
+            hasBackgroundImage = true;
+            deleteImageBtn.classList.remove('hidden');
+            toggleLayerBtn.classList.remove('hidden');
+            isImageInFront = false; // Default to back
+            updateLayerOrder();
+            
+            makeResizable(imageWrapper, resizeHandle);
+            makeDraggable(imageWrapper);
+        }
+
+        function deleteImage() {
+            imageLayer.innerHTML = '';
+            hasBackgroundImage = false;
+            deleteImageBtn.classList.add('hidden');
+            toggleLayerBtn.classList.add('hidden');
+            renderGrid();
+        }
+
+        function updateLayerOrder() {
+            const wrapper = document.getElementById('image-wrapper');
+            if (!wrapper) return;
+
+            if (isImageInFront) {
+                imageLayer.style.zIndex = '15';
+                wrapper.style.pointerEvents = 'all';
+                layerBackIcon.classList.remove('hidden');
+                layerFrontIcon.classList.add('hidden');
+            } else {
+                imageLayer.style.zIndex = '5';
+                wrapper.style.pointerEvents = 'none';
+                layerBackIcon.classList.add('hidden');
+                layerFrontIcon.classList.remove('hidden');
+            }
+            renderGrid(); // Update cell transparency
+        }
+
+        // --- EVENT LISTENERS ---
+        colorPalette.addEventListener('click', (event) => {
+            const button = event.target.closest('button');
+            if (button && button.dataset.color) {
+                mixColor(baseColors[button.dataset.color]);
+                setMode('paint');
+            }
+        });
+
+        Object.keys(modeButtons).forEach(mode => {
+            if (mode.startsWith('zoom')) {
+                const direction = mode === 'zoomIn' ? 'in' : 'out';
+                modeButtons[mode].addEventListener('click', () => handleZoom(null, direction));
+            } else {
+                modeButtons[mode].addEventListener('click', () => setMode(mode));
+            }
+        });
+
+        clearBrushBtn.addEventListener('click', clearBrush);
+        gridButtons.merge.addEventListener('click', globalMerge);
+        gridButtons.split.addEventListener('click', globalSplit);
+        saveImageBtn.addEventListener('click', saveImage);
+        saveProjectBtn.addEventListener('click', saveProject);
+        loadProjectBtn.addEventListener('click', loadProject);
+        loadProjectInput.addEventListener('change', handleFileLoad);
+        window.addEventListener('paste', handlePaste);
+        deleteImageBtn.addEventListener('click', deleteImage);
+        toggleLayerBtn.addEventListener('click', () => {
+            isImageInFront = !isImageInFront;
+            updateLayerOrder();
+        });
+        fitCanvasBtn.addEventListener('click', fitCanvasToScreen);
+
+        let isPainting = false;
+        let isPanning = false;
+        let startX, startY, scrollLeft, scrollTop;
+
+        function handleCanvasStart(e) {
+            hideToolbars();
+            const point = e.touches ? e.touches[0] : e;
+            const target = document.elementFromPoint(point.clientX, point.clientY);
+            
+            if (currentMode === 'pan') {
+                e.preventDefault();
+                isPanning = true;
+                drawingContainer.style.cursor = 'grabbing';
+                startX = point.pageX;
+                startY = point.pageY;
+                scrollLeft = drawingContainer.scrollLeft;
+                scrollTop = drawingContainer.scrollTop;
+                return;
+            }
+
+            if (target && target.classList.contains('grid-cell')) {
+                e.preventDefault();
+                if (currentMode === 'picker') {
+                    const pickedColor = target.style.backgroundColor;
+                    currentMixedColor = pickedColor;
+                    mixCount = 1;
+                    updateCurrentColorDisplay(currentMixedColor);
+                    setMode('paint');
+                    return;
+                }
+                if (currentMode === 'paint') {
+                    isPainting = true;
+                    paintCell(target);
+                }
+            }
+        }
+
+        function handleCanvasMove(e) {
+            if (isPainting) {
+                e.preventDefault();
+                const point = e.touches ? e.touches[0] : e;
+                const target = document.elementFromPoint(point.clientX, point.clientY);
+                if (target && target.classList.contains('grid-cell')) {
+                    paintCell(target);
+                }
+            } else if (isPanning) {
+                e.preventDefault();
+                const point = e.touches ? e.touches[0] : e;
+                drawingContainer.scrollLeft = scrollLeft - (point.pageX - startX);
+                drawingContainer.scrollTop = scrollTop - (point.pageY - startY);
+            }
+        }
+
+        function handleCanvasEnd() {
+            isPainting = false;
+            isPanning = false;
+            if (currentMode === 'pan') {
+                drawingContainer.style.cursor = 'grab';
+            }
+        }
+
+        drawingContainer.addEventListener('mousedown', handleCanvasStart);
+        drawingContainer.addEventListener('mousemove', handleCanvasMove);
+        window.addEventListener('mouseup', handleCanvasEnd);
+        drawingContainer.addEventListener('touchstart', handleCanvasStart, { passive: false });
+        drawingContainer.addEventListener('touchmove', handleCanvasMove, { passive: false });
+        window.addEventListener('touchend', handleCanvasEnd);
+        
+        function paintCell(cellElement) {
+            if (!cellElement) return;
+            const row = parseInt(cellElement.dataset.row);
+            const col = parseInt(cellElement.dataset.col);
+            const span = GRID_LEVELS[currentGridLevel].span;
+
+            if (gridState[row]?.[col]) {
+                for(let i = 0; i < span; i++) {
+                    for(let j = 0; j < span; j++) {
+                        if(gridState[row+i]?.[col+j]) {
+                            gridState[row+i][col+j].color = currentMixedColor;
+                        }
+                    }
+                }
+                const isWhite = currentMixedColor === 'rgb(255, 255, 255)';
+                cellElement.style.backgroundColor = (isWhite && hasBackgroundImage && !isImageInFront) ? 'rgba(255, 255, 255, 0.5)' : currentMixedColor;
+            }
+        }
+        
+        // Toolbar visibility logic
+        function showToolbar(toolbar) {
+            toolbar.classList.add('visible');
+            draggableColorMixer.classList.add('zoomed');
+        }
+        function hideToolbars() {
+            bottomToolbar.classList.remove('visible');
+            rightToolbar.classList.remove('visible');
+            leftToolbar.classList.remove('visible');
+            draggableColorMixer.classList.remove('zoomed');
+        }
+        
+        bottomTrigger.addEventListener('click', (e) => { e.stopPropagation(); showToolbar(bottomToolbar) });
+        rightTrigger.addEventListener('click', (e) => { e.stopPropagation(); showToolbar(rightToolbar) });
+        leftTrigger.addEventListener('click', (e) => { e.stopPropagation(); showToolbar(leftToolbar) });
+
+        // --- DRAGGABLE & RESIZABLE LOGIC ---
+        function makeDraggable(element) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            
+            function dragMouseDown(e) {
+                if (currentColorDisplay.contains(e.target)) {
+                    return;
+                }
+                e.stopPropagation();
+                e.preventDefault();
+                const point = e.touches ? e.touches[0] : e;
+                pos3 = point.clientX;
+                pos4 = point.clientY;
+                document.addEventListener('mouseup', closeDragElement);
+                document.addEventListener('mousemove', elementDrag);
+                document.addEventListener('touchend', closeDragElement);
+                document.addEventListener('touchmove', elementDrag, { passive: false });
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                const point = e.touches ? e.touches[0] : e;
+                pos1 = pos3 - point.clientX;
+                pos2 = pos4 - point.clientY;
+                pos3 = point.clientX;
+                pos4 = point.clientY;
+                element.style.top = (element.offsetTop - pos2) + "px";
+                element.style.left = (element.offsetLeft - pos1) + "px";
+            }
+
+            function closeDragElement() {
+                document.removeEventListener('mouseup', closeDragElement);
+                document.removeEventListener('mousemove', elementDrag);
+                document.removeEventListener('touchend', closeDragElement);
+                document.removeEventListener('touchmove', elementDrag);
+            }
+            
+            element.addEventListener('mousedown', dragMouseDown);
+            element.addEventListener('touchstart', dragMouseDown, { passive: false });
+        }
+
+        function makeResizable(element, handle) {
+            let startX, startY, startWidth, startHeight;
+
+            function startResize(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                const point = e.touches ? e.touches[0] : e;
+                startX = point.clientX;
+                startY = point.clientY;
+                startWidth = parseInt(document.defaultView.getComputedStyle(element).width, 10);
+                startHeight = parseInt(document.defaultView.getComputedStyle(element).height, 10);
+                document.documentElement.addEventListener('mousemove', doResize, false);
+                document.documentElement.addEventListener('mouseup', stopResize, false);
+                document.documentElement.addEventListener('touchmove', doResize, { passive: false });
+                document.documentElement.addEventListener('touchend', stopResize, false);
+            }
+
+            function doResize(e) {
+                e.preventDefault();
+                const point = e.touches ? e.touches[0] : e;
+                element.style.width = (startWidth + point.clientX - startX) + 'px';
+                element.style.height = (startHeight + point.clientY - startY) + 'px';
+            }
+
+            function stopResize() {
+                document.documentElement.removeEventListener('mousemove', doResize, false);
+                document.documentElement.removeEventListener('mouseup', stopResize, false);
+                document.documentElement.removeEventListener('touchmove', doResize);
+                document.documentElement.removeEventListener('touchend', stopResize, false);
+            }
+            
+            handle.addEventListener('mousedown', startResize, false);
+            handle.addEventListener('touchstart', startResize, { passive: false });
+        }
+
+        makeDraggable(draggableColorMixer);
+
+        // --- INITIALIZATION ---
+        function fitCanvasToScreen() {
+            const containerWidth = drawingContainer.clientWidth;
+            const containerHeight = drawingContainer.clientHeight;
+            const containerAspectRatio = containerWidth / containerHeight;
+            const gridAspectRatio = GRID_COLS / GRID_ROWS;
+
+            let areaWidth, areaHeight;
+
+            if (containerAspectRatio > gridAspectRatio) {
+                areaHeight = containerHeight;
+                areaWidth = areaHeight * gridAspectRatio;
+            } else {
+                areaWidth = containerWidth;
+                areaHeight = areaWidth / gridAspectRatio;
+            }
+            
+            drawingArea.style.width = `${areaWidth}px`;
+            drawingArea.style.height = `${areaHeight}px`;
+
+            zoomLevel = 1.0;
+            drawingArea.style.transform = `scale(1)`;
+            drawingContainer.scrollLeft = (drawingArea.offsetWidth - containerWidth) / 2;
+            drawingContainer.scrollTop = (drawingArea.offsetHeight - containerHeight) / 2;
+        }
+
+        initializeGridState();
+        fitCanvasToScreen();
+        renderGrid();
+        updateCurrentColorDisplay(currentMixedColor);
+        window.addEventListener('resize', fitCanvasToScreen);
+
+        currentColorDisplay.addEventListener('click', () => {
+            setMode('paint');
+        });
+    </script>
+
+</body>
+</html>
