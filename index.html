@@ -292,15 +292,14 @@
 
     <script>
         // --- CONFIGURATION ---
-        const GRID_COLS = 512;
-        const GRID_ROWS = 288;
+        const GRID_COLS = 260;
+        const GRID_ROWS = 144;
         const GRID_LEVELS = [
-            { cols: 512, rows: 288, span: 1 },
-            { cols: 256, rows: 144, span: 2 },
-            { cols: 128, rows: 72, span: 4 },
-            { cols: 64, rows: 36, span: 8 },
-            { cols: 32, rows: 18, span: 16 },
-            { cols: 16, rows: 9, span: 32 }
+            { cols: 256, rows: 144, span: 1 },
+            { cols: 128, rows: 72, span: 2 },
+            { cols: 64, rows: 36, span: 4 },
+            { cols: 32, rows: 18, span: 8 },
+            { cols: 16, rows: 9, span: 16 }
         ];
         let currentGridLevel = 3;
         let gridState = [];
@@ -935,4 +934,5 @@
     </script>
 
 </body>
+
 </html>
