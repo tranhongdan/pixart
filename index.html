@@ -263,7 +263,7 @@
     <div id="right-toolbar" class="toolbar flex flex-col items-center justify-center gap-4">
         <button id="merge-cells" title="Gộp toàn bộ ô" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13A1.5 1.5 0 0 1 14.5 16h-13A1.5 1.5 0 0 1 0 14.5v-13zM1.5 1a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5h-13z"/>
+                <path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13A1.5 1.5 0 0 1 14.5 16h-13A1.5 1.5 0 0 1 0 14.5v-13zM1.5 1a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5h-13zM1 7.5h14v1H1v-1zM7.5 1v14h1V1h-1z"/>
             </svg>
         </button>
         <button id="split-cells" title="Chia toàn bộ ô" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
@@ -764,6 +764,17 @@
             }
             renderGrid(); // Update cell transparency
         }
+        
+        // --- MOBILE ZOOM PREVENTION ---
+        // Prevent pinch-zoom which can break the layout on mobile, especially on iOS
+        document.addEventListener('gesturestart', function (e) {
+            e.preventDefault();
+        });
+        // Prevent double tap zoom
+        document.addEventListener('dblclick', function(event) {
+            event.preventDefault();
+        }, { passive: false });
+
 
         // --- EVENT LISTENERS ---
         colorPalette.addEventListener('click', (event) => {
