@@ -2,7 +2,8 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <!-- Thay đổi quan trọng 1: Khóa chức năng zoom của trình duyệt trên di động -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PixArt</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,7 +14,7 @@
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
             overflow: hidden;
-            touch-action: none; /* Prevent default touch behaviors like pull-to-refresh */
+            touch-action: none; /* Ngăn các hành vi cảm ứng mặc định như kéo để làm mới */
         }
         .action-btn {
             transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, background-color 0.2s, opacity 0.2s;
@@ -30,6 +31,8 @@
         .action-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
         #drawing-container {
             cursor: default;
@@ -64,7 +67,7 @@
         .grid-cell {
             border: 0.05px solid #e5e7eb;
         }
-        /* Hide scrollbars for a cleaner look */
+        /* Ẩn thanh cuộn để giao diện gọn gàng hơn */
         #drawing-container::-webkit-scrollbar { display: none; }
         #drawing-container { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -140,7 +143,7 @@
         }
         .resize-handle.br { bottom: -6px; right: -6px; cursor: se-resize; }
         
-        /* Custom Message Box */
+        /* Hộp thông báo tùy chỉnh */
         #message-box {
             position: fixed;
             top: 2rem;
@@ -164,7 +167,7 @@
 </head>
 <body class="w-screen h-screen">
 
-    <!-- Drawing Area -->
+    <!-- Khu vực vẽ -->
     <div id="drawing-container" class="w-full h-full overflow-auto bg-gray-200">
         <div id="canvas-wrapper">
             <div id="background-layer"></div>
@@ -173,12 +176,12 @@
         </div>
     </div>
 
-    <!-- Draggable Color Mixer -->
+    <!-- Bảng trộn màu có thể kéo thả -->
     <div id="draggable-color-mixer">
         <div id="current-color" class="w-14 h-14 rounded-lg border-2 border-gray-300 shadow-inner cursor-pointer" style="background-color: #ffffff;"></div>
     </div>
 
-    <!-- Toolbar Triggers -->
+    <!-- Nút kích hoạt thanh công cụ -->
     <div id="bottom-trigger" class="toolbar-trigger">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"/></svg>
     </div>
@@ -189,7 +192,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/></svg>
     </div>
 
-    <!-- Bottom Toolbar: Colors -->
+    <!-- Thanh công cụ dưới: Màu sắc -->
     <div id="bottom-toolbar" class="toolbar flex flex-wrap items-center justify-center gap-4">
         <div class="flex flex-wrap justify-center gap-3" id="color-palette">
             <button data-color="red" class="color-swatch w-12 h-12 rounded-full border-2 border-white shadow-md" style="background-color: #ef4444;"></button>
@@ -206,8 +209,14 @@
         </button>
     </div>
 
-    <!-- Left Toolbar: File & Image Operations -->
+    <!-- Thanh công cụ trái: Thao tác tệp & ảnh -->
     <div id="left-toolbar" class="toolbar flex flex-col items-center justify-center gap-4">
+        <button id="undo-btn" title="Hoàn tác (Ctrl+Z)" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrow-counterclockwise" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/></svg>
+        </button>
+        <button id="redo-btn" title="Làm lại (Ctrl+Y)" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
+        </button>
         <button id="save-project-btn" title="Lưu Project" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-file-earmark-arrow-down" viewBox="0 0 16 16"><path d="M8.5 6.5a.5.5 0 0 0-1 0v3.793L6.354 9.146a.5.5 0 1 0-.708.708l2 2a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0-.708-.708L8.5 10.293V6.5z"/><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 1.5v2A1.5 1.5 0 0 0 11 5h2V2.47l-3.5-3.5zM4 1h5.5v4A1.5 1.5 0 0 0 11 6.5h.5v7.5a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V2a.5.5 0 0 1 .5-.5z"/></svg>
         </button>
@@ -259,7 +268,7 @@
         <input type="file" id="load-project-input" accept=".pixart" class="hidden">
     </div>
 
-    <!-- Right Toolbar: Grid & View Operations -->
+    <!-- Thanh công cụ phải: Thao tác lưới & hiển thị -->
     <div id="right-toolbar" class="toolbar flex flex-col items-center justify-center gap-4">
         <button id="merge-cells" title="Gộp toàn bộ ô" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
@@ -290,11 +299,11 @@
         </button>
     </div>
     
-    <!-- Custom Message Box -->
+    <!-- Hộp thông báo tùy chỉnh -->
     <div id="message-box">Tệp project không hợp lệ.</div>
 
     <script>
-        // --- CONFIGURATION ---
+        // --- CẤU HÌNH ---
         const GRID_COLS = 256;
         const GRID_ROWS = 144;
         const GRID_LEVELS = [
@@ -304,6 +313,9 @@
             { cols: 32, rows: 18, span: 8 },
             { cols: 16, rows: 9, span: 16 }
         ];
+        const UNDO_LIMIT = 30;
+
+        // --- TRẠNG THÁI ---
         let currentGridLevel = 2;
         let gridState = [];
         let zoomLevel = 1.0;
@@ -311,8 +323,10 @@
         let currentMode = 'paint';
         let hasBackgroundImage = false;
         let isImageInFront = false;
+        let undoStack = [];
+        let redoStack = [];
 
-        // --- COLORS ---
+        // --- MÀU SẮC ---
         const baseColors = {
             red: [239, 68, 68],
             green: [34, 197, 94],
@@ -326,7 +340,7 @@
         let currentMixedColor = 'rgb(255, 255, 255)';
         let mixCount = 0;
 
-        // --- DOM ELEMENTS ---
+        // --- CÁC THÀNH PHẦN DOM ---
         const colorPalette = document.getElementById('color-palette');
         const currentColorDisplay = document.getElementById('current-color');
         const drawingArea = document.getElementById('drawing-area');
@@ -344,7 +358,7 @@
         const imageLayer = document.getElementById('image-layer');
         const messageBox = document.getElementById('message-box');
         
-        // File & Image Operations
+        // Thao tác tệp & ảnh
         const saveImageBtn = document.getElementById('save-image-btn');
         const saveOptionsContainer = document.getElementById('save-options-container');
         const saveWithGridBtn = document.getElementById('save-with-grid-btn');
@@ -357,8 +371,10 @@
         const layerBackIcon = document.getElementById('layer-back-icon');
         const layerFrontIcon = document.getElementById('layer-front-icon');
         const fitCanvasBtn = document.getElementById('fit-canvas-btn');
+        const undoBtn = document.getElementById('undo-btn');
+        const redoBtn = document.getElementById('redo-btn');
 
-        // Mode Buttons
+        // Nút chế độ
         const zoomInBtn = document.getElementById('zoom-in-mode');
         const zoomOutBtn = document.getElementById('zoom-out-mode');
         const modeButtons = {
@@ -370,7 +386,7 @@
             split: document.getElementById('split-cells')
         }
         
-        // --- UTILITY FUNCTIONS ---
+        // --- CÁC HÀM TIỆN ÍCH ---
         function showMessage(text, type = 'error') {
             messageBox.textContent = text;
             messageBox.style.backgroundColor = type === 'error' ? '#ef4444' : '#22c55e';
@@ -380,7 +396,43 @@
             }, 3000);
         }
 
-        // --- COLOR FUNCTIONS ---
+        // --- CÁC HÀM LỊCH SỬ (UNDO/REDO) ---
+        function saveStateForUndo() {
+            const stateCopy = JSON.parse(JSON.stringify(gridState));
+            undoStack.push(stateCopy);
+            if (undoStack.length > UNDO_LIMIT) {
+                undoStack.shift();
+            }
+            redoStack = [];
+            updateHistoryButtons();
+        }
+
+        function handleUndo() {
+            if (undoStack.length === 0) return;
+            const currentState = JSON.parse(JSON.stringify(gridState));
+            redoStack.push(currentState);
+            const prevState = undoStack.pop();
+            gridState = prevState;
+            renderGrid();
+            updateHistoryButtons();
+        }
+
+        function handleRedo() {
+            if (redoStack.length === 0) return;
+            const currentState = JSON.parse(JSON.stringify(gridState));
+            undoStack.push(currentState);
+            const nextState = redoStack.pop();
+            gridState = nextState;
+            renderGrid();
+            updateHistoryButtons();
+        }
+
+        function updateHistoryButtons() {
+            undoBtn.disabled = undoStack.length === 0;
+            redoBtn.disabled = redoStack.length === 0;
+        }
+
+        // --- CÁC HÀM MÀU SẮC ---
         function updateCurrentColorDisplay(rgbStr) {
             currentColorDisplay.style.backgroundColor = rgbStr;
         }
@@ -388,17 +440,15 @@
         function mixColor(newColorRgb) {
             let oldRgb;
             if (mixCount === 0) {
-                oldRgb = [255, 255, 255]; // Start from white
+                oldRgb = [255, 255, 255];
             } else {
                 oldRgb = currentMixedColor.match(/\d+/g).map(Number);
             }
-            
             const mixed = [
                 (oldRgb[0] * mixCount + newColorRgb[0]) / (mixCount + 1),
                 (oldRgb[1] * mixCount + newColorRgb[1]) / (mixCount + 1),
                 (oldRgb[2] * mixCount + newColorRgb[2]) / (mixCount + 1)
             ].map(Math.round);
-
             mixCount++;
             currentMixedColor = `rgb(${mixed[0]}, ${mixed[1]}, ${mixed[2]})`;
             updateCurrentColorDisplay(currentMixedColor);
@@ -410,7 +460,7 @@
             updateCurrentColorDisplay(currentMixedColor);
         }
 
-        // --- GRID FUNCTIONS ---
+        // --- CÁC HÀM LƯỚI ---
         function initializeGridState(rows = GRID_ROWS, cols = GRID_COLS) {
             gridState = [];
             for (let r = 0; r < rows; r++) {
@@ -419,6 +469,9 @@
                     gridState[r][c] = { color: 'rgb(255, 255, 255)' };
                 }
             }
+            undoStack = [];
+            redoStack = [];
+            updateHistoryButtons();
         }
 
         function renderGrid() {
@@ -426,17 +479,14 @@
             const cols = level.cols;
             const rows = level.rows;
             const span = level.span;
-
             drawingArea.innerHTML = '';
             drawingArea.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
             drawingArea.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-            
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
                     const originalRow = r * span;
                     const originalCol = c * span;
                     const cellData = gridState[originalRow]?.[originalCol] || { color: 'rgb(255, 255, 255)'};
-                    
                     const cell = document.createElement('div');
                     cell.classList.add('grid-cell');
                     cell.dataset.row = originalRow;
@@ -451,6 +501,7 @@
 
         function globalSplit() {
             if (currentGridLevel > 0) {
+                saveStateForUndo();
                 currentGridLevel--;
                 renderGrid();
             }
@@ -458,16 +509,14 @@
 
         function globalMerge() {
             if (currentGridLevel < GRID_LEVELS.length - 1) {
+                saveStateForUndo();
                 const oldLevel = GRID_LEVELS[currentGridLevel];
                 const newLevel = GRID_LEVELS[currentGridLevel + 1];
-
                 for (let r = 0; r < newLevel.rows; r++) {
                     for (let c = 0; c < newLevel.cols; c++) {
                         const startRow = r * newLevel.span;
                         const startCol = c * newLevel.span;
-                        
                         const colors = [];
-                        // Check the 4 sub-quadrants for colors
                         for(let i = 0; i < oldLevel.span * 2; i += oldLevel.span) {
                             for(let j = 0; j < oldLevel.span * 2; j += oldLevel.span) {
                                 const subRow = startRow + i;
@@ -477,20 +526,15 @@
                                 }
                             }
                         }
-
                         const nonWhiteColors = colors.filter(color => color !== 'rgb(255, 255, 255)');
                         let dominantColor = 'rgb(255, 255, 255)';
-
                         if (nonWhiteColors.length > 0) {
-                            // Find the most frequent color
                             const colorCounts = {};
                             nonWhiteColors.forEach(color => {
                                 colorCounts[color] = (colorCounts[color] || 0) + 1;
                             });
                             dominantColor = Object.keys(colorCounts).reduce((a, b) => colorCounts[a] > colorCounts[b] ? a : b);
                         } 
-                        
-                        // Apply the dominant color to the entire merged block
                         for (let i = 0; i < newLevel.span; i++) {
                             for (let j = 0; j < newLevel.span; j++) {
                                 const targetRow = startRow + i;
@@ -510,22 +554,20 @@
         function updateButtonStates() {
             gridButtons.split.disabled = currentGridLevel === 0;
             gridButtons.merge.disabled = currentGridLevel === GRID_LEVELS.length - 1;
+            updateHistoryButtons();
         }
 
-        // --- UI MODE & VIEW FUNCTIONS ---
+        // --- CÁC HÀM CHẾ ĐỘ UI & HIỂN THỊ ---
         function setMode(newMode) {
-            // If the same mode button is clicked, toggle it off and revert to paint mode
             if (currentMode === newMode && newMode !== 'paint') {
                 currentMode = 'paint';
             } else {
                 currentMode = newMode;
             }
-            
             Object.values(modeButtons).forEach(btn => btn.classList.remove('active'));
             if(modeButtons[currentMode]) {
                  modeButtons[currentMode].classList.add('active');
             }
-            
             if (currentMode === 'picker') drawingContainer.style.cursor = 'crosshair';
             else if (currentMode === 'pan') drawingContainer.style.cursor = 'grab';
             else drawingContainer.style.cursor = 'pointer';
@@ -534,30 +576,23 @@
         function handleZoom(eventPoint, direction) {
             const rect = drawingContainer.getBoundingClientRect();
             let mouseX, mouseY;
-
             if (eventPoint) {
                 mouseX = eventPoint.clientX - rect.left;
                 mouseY = eventPoint.clientY - rect.top;
             } else {
-                // Zoom to center if no point is provided
                 mouseX = drawingContainer.clientWidth / 2;
                 mouseY = drawingContainer.clientHeight / 2;
             }
-
             const pointX = (drawingContainer.scrollLeft + mouseX) / zoomLevel;
             const pointY = (drawingContainer.scrollTop + mouseY) / zoomLevel;
-            
             const newZoomLevel = direction === 'in' ? zoomLevel * ZOOM_STEP : zoomLevel / ZOOM_STEP;
             zoomLevel = Math.max(0.1, Math.min(newZoomLevel, 20));
-
             canvasWrapper.style.transform = `scale(${zoomLevel})`;
-            
-            // Adjust scroll to keep the point under the mouse
             drawingContainer.scrollLeft = (pointX * zoomLevel) - mouseX;
             drawingContainer.scrollTop = (pointY * zoomLevel) - mouseY;
         }
         
-        // --- FILE & IMAGE OPERATIONS ---
+        // --- CÁC HÀM THAO TÁC TỆP & ẢNH ---
         function saveImage(withGrid) {
             const canvas = document.createElement('canvas');
             const saveWidth = 2560;
@@ -565,17 +600,11 @@
             canvas.width = saveWidth;
             canvas.height = saveHeight;
             const ctx = canvas.getContext('2d');
-            
-            // Set a white background first
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, saveWidth, saveHeight);
-
             ctx.imageSmoothingEnabled = false;
-
             const cellScaleX = saveWidth / GRID_COLS;
             const cellScaleY = saveHeight / GRID_ROWS;
-
-            // Draw all colored cells from the full-resolution grid state
             for (let r = 0; r < GRID_ROWS; r++) {
                 for (let c = 0; c < GRID_COLS; c++) {
                     if (gridState[r]?.[c] && gridState[r][c].color !== 'rgb(255, 255, 255)') {
@@ -584,26 +613,20 @@
                     }
                 }
             }
-
-            // Conditionally draw the grid based on the current view density
             if (withGrid) {
                 const level = GRID_LEVELS[currentGridLevel];
                 const exportCols = level.cols;
                 const exportRows = level.rows;
-
                 const gridLineScaleX = saveWidth / exportCols;
                 const gridLineScaleY = saveHeight / exportRows;
-
                 ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
                 ctx.lineWidth = 0.3;
-
                 for (let c = 1; c < exportCols; c++) {
                     ctx.beginPath();
                     ctx.moveTo(c * gridLineScaleX, 0);
                     ctx.lineTo(c * gridLineScaleX, saveHeight);
                     ctx.stroke();
                 }
-
                 for (let r = 1; r < exportRows; r++) {
                     ctx.beginPath();
                     ctx.moveTo(0, r * gridLineScaleY);
@@ -611,7 +634,6 @@
                     ctx.stroke();
                 }
             }
-
             const link = document.createElement('a');
             link.download = 'pixart.png';
             link.href = canvas.toDataURL('image/png');
@@ -641,32 +663,24 @@
         function handleFileLoad(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
                     const projectData = JSON.parse(e.target.result);
-                    // More robust validation
                     if (Array.isArray(projectData) && projectData.length > 0 && Array.isArray(projectData[0]) && projectData[0].length > 0 && projectData[0][0].hasOwnProperty('color')) {
-                        
                         const loadedRows = projectData.length;
                         const loadedCols = projectData[0].length;
-
-                        initializeGridState(); // Reset to standard size
-
-                        // Resample loaded data into the standard grid size
+                        initializeGridState();
                         for (let r = 0; r < GRID_ROWS; r++) {
                             for (let c = 0; c < GRID_COLS; c++) {
                                 const sourceR = Math.floor(r * (loadedRows / GRID_ROWS));
                                 const sourceC = Math.floor(c * (loadedCols / GRID_COLS));
-                                
                                 if (projectData[sourceR]?.[sourceC]) {
                                     gridState[r][c] = projectData[sourceR][sourceC];
                                 }
                             }
                         }
-                        
-                        currentGridLevel = 0; // Start at highest detail
+                        currentGridLevel = 0;
                         fitCanvasToScreen();
                         renderGrid();
                     } else {
@@ -678,7 +692,7 @@
                 }
             };
             reader.readAsText(file);
-            loadProjectInput.value = ''; // Reset for next load
+            loadProjectInput.value = '';
         }
 
         function handlePaste(event) {
@@ -693,49 +707,38 @@
         }
 
         function createPastedImage(blob) {
-            deleteImage(); // Clear any existing image
+            deleteImage();
             const url = URL.createObjectURL(blob);
-            
             const imageWrapper = document.createElement('div');
             imageWrapper.id = 'image-wrapper';
-            
             const img = document.createElement('img');
             img.id = 'pasted-image';
-            
             const resizeHandle = document.createElement('div');
             resizeHandle.className = 'resize-handle br';
-            
             imageWrapper.appendChild(img);
             imageWrapper.appendChild(resizeHandle);
             imageLayer.appendChild(imageWrapper);
-
             img.onload = () => {
-                // Set initial size based on canvas size, maintaining aspect ratio
                 const imgAspectRatio = img.naturalWidth / img.naturalHeight;
                 const canvasRect = canvasWrapper.getBoundingClientRect();
                 let initialWidth = canvasRect.width * 0.5;
                 let initialHeight = initialWidth / imgAspectRatio;
-
                 if (initialHeight > canvasRect.height * 0.8) {
                     initialHeight = canvasRect.height * 0.8;
                     initialWidth = initialHeight * imgAspectRatio;
                 }
-                
                 imageWrapper.style.width = `${initialWidth}px`;
                 imageWrapper.style.height = `${initialHeight}px`;
                 imageWrapper.style.left = `${(canvasRect.width - initialWidth) / 2}px`;
                 imageWrapper.style.top = `${(canvasRect.height - initialHeight) / 2}px`;
-
                 makeResizable(imageWrapper, resizeHandle, imgAspectRatio);
             };
             img.src = url;
-            
             hasBackgroundImage = true;
             deleteImageBtn.classList.remove('hidden');
             toggleLayerBtn.classList.remove('hidden');
-            isImageInFront = false; // Default to back
+            isImageInFront = false;
             updateLayerOrder();
-            
             makeDraggable(imageWrapper, canvasWrapper);
         }
 
@@ -744,34 +747,38 @@
             hasBackgroundImage = false;
             deleteImageBtn.classList.add('hidden');
             toggleLayerBtn.classList.add('hidden');
-            renderGrid(); // Redraw grid to remove transparency
+            renderGrid();
         }
 
         function updateLayerOrder() {
             const wrapper = document.getElementById('image-wrapper');
             if (!wrapper) return;
-
             if (isImageInFront) {
                 imageLayer.style.zIndex = '15';
-                wrapper.style.pointerEvents = 'all'; // Can interact with image
+                wrapper.style.pointerEvents = 'all';
                 layerFrontIcon.classList.remove('hidden');
                 layerBackIcon.classList.add('hidden');
             } else {
                 imageLayer.style.zIndex = '5';
-                wrapper.style.pointerEvents = 'none'; // Cannot interact with image
+                wrapper.style.pointerEvents = 'none';
                 layerFrontIcon.classList.add('hidden');
                 layerBackIcon.classList.remove('hidden');
             }
-            renderGrid(); // Update cell transparency
+            renderGrid();
         }
 
-        // --- EVENT LISTENERS ---
+        // --- CÁC BỘ LẮNG NGHE SỰ KIỆN ---
         colorPalette.addEventListener('click', (event) => {
             const button = event.target.closest('button.color-swatch');
             if (button && button.dataset.color) {
                 mixColor(baseColors[button.dataset.color]);
                 setMode('paint');
             }
+        });
+        
+        // Thay đổi quan trọng 3: Khi click vào ô màu trộn, chuyển sang chế độ vẽ
+        currentColorDisplay.addEventListener('click', () => {
+            setMode('paint');
         });
 
         Object.keys(modeButtons).forEach(mode => {
@@ -816,6 +823,21 @@
             updateLayerOrder();
         });
         fitCanvasBtn.addEventListener('click', fitCanvasToScreen);
+        undoBtn.addEventListener('click', handleUndo);
+        redoBtn.addEventListener('click', handleRedo);
+
+        // Phím tắt
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key.toLowerCase() === 'z') {
+                    e.preventDefault();
+                    handleUndo();
+                } else if (e.key.toLowerCase() === 'y') {
+                    e.preventDefault();
+                    handleRedo();
+                }
+            }
+        });
 
         let isPainting = false;
         let isPanning = false;
@@ -825,7 +847,6 @@
             hideToolbars();
             const point = e.touches ? e.touches[0] : e;
             const target = document.elementFromPoint(point.clientX, point.clientY);
-            
             if (currentMode === 'pan') {
                 e.preventDefault();
                 isPanning = true;
@@ -836,7 +857,6 @@
                 scrollTop = drawingContainer.scrollTop;
                 return;
             }
-
             if (target && target.classList.contains('grid-cell')) {
                 e.preventDefault();
                 if (currentMode === 'picker') {
@@ -852,6 +872,7 @@
                 }
                 if (currentMode === 'paint') {
                     isPainting = true;
+                    saveStateForUndo();
                     paintCell(target);
                 }
             }
@@ -893,9 +914,7 @@
             const row = parseInt(cellElement.dataset.row);
             const col = parseInt(cellElement.dataset.col);
             const span = GRID_LEVELS[currentGridLevel].span;
-
             if (gridState[row]?.[col]) {
-                // Apply color to the entire block in the base grid state
                 for(let i = 0; i < span; i++) {
                     for(let j = 0; j < span; j++) {
                         if(gridState[row+i]?.[col+j]) {
@@ -903,13 +922,12 @@
                         }
                     }
                 }
-                // Update the visible cell's color
                 const isWhite = currentMixedColor === 'rgb(255, 255, 255)';
                 cellElement.style.backgroundColor = isWhite ? 'transparent' : currentMixedColor;
             }
         }
         
-        // Toolbar visibility logic
+        // Logic hiển thị thanh công cụ
         function showToolbar(toolbar) {
             toolbar.classList.add('visible');
             draggableColorMixer.classList.add('zoomed');
@@ -925,14 +943,13 @@
         rightTrigger.addEventListener('click', (e) => { e.stopPropagation(); showToolbar(rightToolbar) });
         leftTrigger.addEventListener('click', (e) => { e.stopPropagation(); showToolbar(leftToolbar) });
 
-        // --- DRAGGABLE & RESIZABLE LOGIC ---
-        function makeDraggable(element, boundaryElement = window) {
+        // --- LOGIC KÉO THẢ & THAY ĐỔI KÍCH THƯỚC ---
+        // Thay đổi quan trọng 2 & 4: Cải thiện chức năng kéo thả, cho phép kéo tự do
+        function makeDraggable(element, boundaryElement = window, constrain = true) {
             let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
             
             function dragMouseDown(e) {
-                // Prevent drag from starting on certain child elements
                 if (e.target.classList.contains('resize-handle')) return;
-                
                 e.stopPropagation();
                 e.preventDefault();
                 const point = e.touches ? e.touches[0] : e;
@@ -951,22 +968,21 @@
                 pos2 = pos4 - point.clientY;
                 pos3 = point.clientX;
                 pos4 = point.clientY;
-
                 let newTop = element.offsetTop - pos2;
                 let newLeft = element.offsetLeft - pos1;
 
-                const boundaryRect = boundaryElement.getBoundingClientRect();
-                const parentRect = element.offsetParent.getBoundingClientRect();
-
-                const minLeft = boundaryRect.left - parentRect.left;
-                const minTop = boundaryRect.top - parentRect.top;
-                const maxLeft = minLeft + boundaryRect.width - element.offsetWidth;
-                const maxTop = minTop + boundaryRect.height - element.offsetHeight;
-
-                if (newLeft < minLeft) newLeft = minLeft;
-                if (newTop < minTop) newTop = minTop;
-                if (newLeft > maxLeft) newLeft = maxLeft;
-                if (newTop > maxTop) newTop = maxTop;
+                if (constrain) {
+                    const boundaryRect = boundaryElement.getBoundingClientRect();
+                    const parentRect = element.offsetParent.getBoundingClientRect();
+                    const minLeft = boundaryRect.left - parentRect.left;
+                    const minTop = boundaryRect.top - parentRect.top;
+                    const maxLeft = minLeft + boundaryRect.width - element.offsetWidth;
+                    const maxTop = minTop + boundaryRect.height - element.offsetHeight;
+                    if (newLeft < minLeft) newLeft = minLeft;
+                    if (newTop < minTop) newTop = minTop;
+                    if (newLeft > maxLeft) newLeft = maxLeft;
+                    if (newTop > maxTop) newTop = maxTop;
+                }
 
                 element.style.top = newTop + "px";
                 element.style.left = newLeft + "px";
@@ -985,7 +1001,6 @@
 
         function makeResizable(element, handle, aspectRatio) {
             let startX, startY, startWidth, startHeight;
-
             function startResize(e) {
                 e.stopPropagation();
                 e.preventDefault();
@@ -999,42 +1014,34 @@
                 document.documentElement.addEventListener('touchmove', doResize, { passive: false });
                 document.documentElement.addEventListener('touchend', stopResize, false);
             }
-
             function doResize(e) {
                 e.preventDefault();
                 const point = e.touches ? e.touches[0] : e;
                 const newWidth = startWidth + point.clientX - startX;
                 element.style.width = newWidth + 'px';
-                // Maintain aspect ratio
                 if (aspectRatio) {
                     element.style.height = (newWidth / aspectRatio) + 'px';
                 } else {
                      element.style.height = (startHeight + point.clientY - startY) + 'px';
                 }
             }
-
             function stopResize() {
                 document.documentElement.removeEventListener('mousemove', doResize, false);
                 document.documentElement.removeEventListener('mouseup', stopResize, false);
                 document.documentElement.removeEventListener('touchmove', doResize);
                 document.documentElement.removeEventListener('touchend', stopResize, false);
             }
-            
             handle.addEventListener('mousedown', startResize, false);
             handle.addEventListener('touchstart', startResize, { passive: false });
         }
 
-        makeDraggable(draggableColorMixer);
-
-        // --- INITIALIZATION ---
+        // --- KHỞI TẠO ---
         function fitCanvasToScreen() {
             const containerWidth = drawingContainer.clientWidth;
             const containerHeight = drawingContainer.clientHeight;
             const containerAspectRatio = containerWidth / containerHeight;
             const gridAspectRatio = GRID_COLS / GRID_ROWS;
-
             let areaWidth, areaHeight;
-
             if (containerAspectRatio > gridAspectRatio) {
                 areaHeight = containerHeight;
                 areaWidth = areaHeight * gridAspectRatio;
@@ -1042,27 +1049,29 @@
                 areaWidth = containerWidth;
                 areaHeight = areaWidth / gridAspectRatio;
             }
-            
             canvasWrapper.style.width = `${areaWidth}px`;
             canvasWrapper.style.height = `${areaHeight}px`;
-
             zoomLevel = 1.0;
             canvasWrapper.style.transform = `scale(1)`;
-            // Center the canvas
             drawingContainer.scrollLeft = (canvasWrapper.offsetWidth - containerWidth) / 2;
             drawingContainer.scrollTop = (canvasWrapper.offsetHeight - containerHeight) / 2;
         }
 
-        // --- App Start ---
+        // --- Bắt đầu ứng dụng ---
         initializeGridState();
         fitCanvasToScreen();
         renderGrid();
         updateCurrentColorDisplay(currentMixedColor);
         window.addEventListener('resize', fitCanvasToScreen);
-
-        currentColorDisplay.addEventListener('click', () => {
-            setMode('paint');
+        
+        // Cho phép kéo bảng màu tự do, không giới hạn trong khung nhìn
+        makeDraggable(draggableColorMixer, window, false);
+        
+        // Ngăn cử chỉ chụm để zoom trên các thiết bị cảm ứng
+        document.addEventListener('gesturestart', function (e) {
+            e.preventDefault();
         });
+
     </script>
 
 </body>
