@@ -160,9 +160,29 @@
             transform: translate(-50%, 0);
             opacity: 1;
         }
+
+        /* Portrait mode warning */
+        @media (orientation: portrait) {
+            #portrait-warning {
+                display: flex;
+            }
+            /* Hide the main app content to prevent interaction */
+            #drawing-container, .toolbar, .toolbar-trigger, #draggable-color-mixer {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body class="w-screen h-screen">
+
+    <!-- Portrait Mode Warning -->
+    <div id="portrait-warning" class="fixed inset-0 bg-gray-800 bg-opacity-90 z-[9999] flex-col items-center justify-center text-white text-center p-4 hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-phone-landscape-fill mb-4" viewBox="0 0 16 16">
+            <path d="M2 12.5a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v9zM4 2a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1H4V2zm7 6.5a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 1 .5.5z"/>
+        </svg>
+        <h2 class="text-2xl font-bold mb-2">Vui lòng xoay ngang màn hình</h2>
+        <p class="text-lg">Ứng dụng này được thiết kế để hoạt động tốt nhất ở chế độ ngang.</p>
+    </div>
 
     <!-- Drawing Area -->
     <div id="drawing-container" class="w-full h-full overflow-auto bg-gray-200">
@@ -253,7 +273,7 @@
         </button>
         <button id="fit-canvas-btn" title="Vừa màn hình" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrows-angle-contract" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M.172 15.828a.5.5 0 0 0 .707 0l4.096-4.096V14.5a.5.5 0 1 0 1 0v-3.975a.5.5 0 0 0-.5-.5H1.5a.5.5 0 0 0 0 1h2.768L.172 15.121a.5.5 0 0 0 0 .707zM15.828.172a.5.5 0 0 0-.707 0L11.025 4.268V1.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H14.5a.5.5 0 0 0 0-1h-2.768L15.828 .879a.5.5 0 0 0 0-.707z"/>
+                <path fill-rule="evenodd" d="M.172 15.828a.5.5 0 0 0 .707 0l4.096-4.096V14.5a.5.5 0 1 0 1 0v-3.975a.5.5 0 0 0-.5-.5H1.5a.5.5 0 0 0 0 1h2.768L.172 15.121a.5.5 0 0 0 0 .707zM15.828.172a.5.5 0 0 0-.707 0L11.025 4.268V1.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H14.5a.5.5 0 0 0 0-1h-2.768L15.828.879a.5.5 0 0 0 0-.707z"/>
             </svg>
         </button>
         <input type="file" id="load-project-input" accept=".pixart" class="hidden">
@@ -523,7 +543,7 @@
             
             Object.values(modeButtons).forEach(btn => btn.classList.remove('active'));
             if(modeButtons[currentMode]) {
-                 modeButtons[currentMode].classList.add('active');
+                modeButtons[currentMode].classList.add('active');
             }
             
             if (currentMode === 'picker') drawingContainer.style.cursor = 'crosshair';
@@ -786,7 +806,7 @@
         });
 
         Object.keys(modeButtons).forEach(mode => {
-             modeButtons[mode].addEventListener('click', () => setMode(mode));
+            modeButtons[mode].addEventListener('click', () => setMode(mode));
         });
 
         zoomInBtn.addEventListener('click', () => handleZoom(null, 'in'));
@@ -1023,7 +1043,7 @@
                 if (aspectRatio) {
                     element.style.height = (newWidth / aspectRatio) + 'px';
                 } else {
-                     element.style.height = (startHeight + point.clientY - startY) + 'px';
+                   element.style.height = (startHeight + point.clientY - startY) + 'px';
                 }
             }
 
@@ -1068,24 +1088,14 @@
         }
 
         // --- App Start ---
-        window.addEventListener('load', () => {
-            // Lock screen orientation to landscape
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(error => {
-                    // This might fail on some browsers or if not in fullscreen, but we try.
-                    console.warn("Không thể khóa hướng màn hình:", error);
-                });
-            }
+        initializeGridState();
+        fitCanvasToScreen();
+        renderGrid();
+        updateCurrentColorDisplay(currentMixedColor);
+        window.addEventListener('resize', fitCanvasToScreen);
 
-            initializeGridState();
-            fitCanvasToScreen();
-            renderGrid();
-            updateCurrentColorDisplay(currentMixedColor);
-            window.addEventListener('resize', fitCanvasToScreen);
-
-            currentColorDisplay.addEventListener('click', () => {
-                setMode('paint');
-            });
+        currentColorDisplay.addEventListener('click', () => {
+            setMode('paint');
         });
     </script>
 
