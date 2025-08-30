@@ -284,6 +284,16 @@
         <button id="delete-image-btn" title="Xóa ảnh nền" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md hidden">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
         </button>
+        <button id="toggle-visibility-btn" title="Ẩn/Hiện ảnh nền" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md hidden">
+            <svg id="visibility-on-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-eye-fill" viewBox="0 0 16 16">
+                <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
+                <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/>
+            </svg>
+            <svg id="visibility-off-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-eye-slash-fill hidden" viewBox="0 0 16 16">
+                <path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7.029 7.029 0 0 0 2.79-.588zM5.21 3.088A7.028 7.028 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474L5.21 3.089z"/>
+                <path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829l-2.83-2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12-.708.708z"/>
+            </svg>
+        </button>
         <button id="toggle-layer-btn" title="Chuyển Lớp Ảnh" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md hidden">
             <svg id="layer-back-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi" viewBox="0 0 16 16">
                 <path d="M1 5h14v1H1V5zm0 5h14v1H1v-1zM5 1v14h1V1H5zm5 0v14h1V1h-1z" fill-opacity="0.5"/>
@@ -354,6 +364,7 @@
         let currentMode = 'paint';
         let hasBackgroundImage = false;
         let isImageInFront = false;
+        let isImageVisible = true; // New state for image visibility
 
         // --- COLORS ---
         const baseColors = {
@@ -400,6 +411,9 @@
         const layerBackIcon = document.getElementById('layer-back-icon');
         const layerFrontIcon = document.getElementById('layer-front-icon');
         const fitCanvasBtn = document.getElementById('fit-canvas-btn');
+        const toggleVisibilityBtn = document.getElementById('toggle-visibility-btn');
+        const visibilityOnIcon = document.getElementById('visibility-on-icon');
+        const visibilityOffIcon = document.getElementById('visibility-off-icon');
 
         // Mode Buttons
         const zoomInBtn = document.getElementById('zoom-in-mode');
@@ -774,10 +788,13 @@
             img.src = url;
             
             hasBackgroundImage = true;
+            isImageVisible = true; // Reset visibility state
             deleteImageBtn.classList.remove('hidden');
             toggleLayerBtn.classList.remove('hidden');
+            toggleVisibilityBtn.classList.remove('hidden'); // Show the new button
             isImageInFront = false; // Default to back
             updateLayerOrder();
+            updateImageVisibility(); // Apply initial visible state
             
             makeDraggable(imageWrapper, canvasWrapper);
         }
@@ -787,6 +804,7 @@
             hasBackgroundImage = false;
             deleteImageBtn.classList.add('hidden');
             toggleLayerBtn.classList.add('hidden');
+            toggleVisibilityBtn.classList.add('hidden'); // Hide the new button
             renderGrid(); // Redraw grid to remove transparency
         }
 
@@ -806,6 +824,25 @@
                 layerBackIcon.classList.remove('hidden');
             }
             renderGrid(); // Update cell transparency
+        }
+
+        function toggleImageVisibility() {
+            isImageVisible = !isImageVisible;
+            updateImageVisibility();
+        }
+
+        function updateImageVisibility() {
+            if (hasBackgroundImage) {
+                if (isImageVisible) {
+                    imageLayer.style.display = 'block';
+                    visibilityOnIcon.classList.remove('hidden');
+                    visibilityOffIcon.classList.add('hidden');
+                } else {
+                    imageLayer.style.display = 'none';
+                    visibilityOnIcon.classList.add('hidden');
+                    visibilityOffIcon.classList.remove('hidden');
+                }
+            }
         }
         
         // --- MOBILE ZOOM PREVENTION ---
@@ -865,6 +902,7 @@
         loadProjectInput.addEventListener('change', handleFileLoad);
         window.addEventListener('paste', handlePaste);
         deleteImageBtn.addEventListener('click', deleteImage);
+        toggleVisibilityBtn.addEventListener('click', toggleImageVisibility);
         toggleLayerBtn.addEventListener('click', () => {
             isImageInFront = !isImageInFront;
             updateLayerOrder();
