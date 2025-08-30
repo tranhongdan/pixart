@@ -912,6 +912,40 @@
         let isPainting = false;
         let isPanning = false;
         let startX, startY, scrollLeft, scrollTop;
+        
+        // --- KEYBOARD PANNING ---
+        const PAN_SPEED = 20; // Pixels to move per key press
+        window.addEventListener('keydown', (e) => {
+            // Do not pan if an input element is focused
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            let scrolled = false;
+            switch (e.key) {
+                case 'ArrowUp':
+                    drawingContainer.scrollTop -= PAN_SPEED;
+                    scrolled = true;
+                    break;
+                case 'ArrowDown':
+                    drawingContainer.scrollTop += PAN_SPEED;
+                    scrolled = true;
+                    break;
+                case 'ArrowLeft':
+                    drawingContainer.scrollLeft -= PAN_SPEED;
+                    scrolled = true;
+                    break;
+                case 'ArrowRight':
+                    drawingContainer.scrollLeft += PAN_SPEED;
+                    scrolled = true;
+                    break;
+            }
+
+            if (scrolled) {
+                e.preventDefault(); // Prevent the whole page from scrolling
+            }
+        });
+
 
         function handleCanvasStart(e) {
             hideToolbars();
