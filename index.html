@@ -437,6 +437,57 @@
             }, 3000);
         }
 
+        // --- STATE MANAGEMENT (NEW) ---
+        let saveTimeout;
+        function saveState() {
+            // Debounce the save operation to avoid excessive writes
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                try {
+                    const state = {
+                        gridState: gridState,
+                        currentGridLevel: currentGridLevel,
+                        zoomLevel: zoomLevel,
+                        scrollLeft: drawingContainer.scrollLeft,
+                        scrollTop: drawingContainer.scrollTop,
+                        currentMixedColor: currentMixedColor,
+                        mixCount: mixCount,
+                    };
+                    localStorage.setItem('pixart_autosave', JSON.stringify(state));
+                } catch (error) {
+                    console.error("Failed to save state:", error);
+                    showMessage("Không thể tự động lưu trạng thái.");
+                }
+            }, 500); // Wait 500ms after the last change before saving
+        }
+
+        function loadState() {
+            try {
+                const savedState = localStorage.getItem('pixart_autosave');
+                if (savedState) {
+                    const state = JSON.parse(savedState);
+                    // Basic validation of the loaded state
+                    if (state.gridState && state.hasOwnProperty('currentGridLevel')) {
+                        gridState = state.gridState;
+                        currentGridLevel = state.currentGridLevel;
+                        zoomLevel = state.zoomLevel || 1.0;
+                        currentMixedColor = state.currentMixedColor || 'rgb(255, 255, 255)';
+                        mixCount = state.mixCount || 0;
+                        
+                        // Return view properties to be applied after canvas sizing
+                        return {
+                            scrollLeft: state.scrollLeft,
+                            scrollTop: state.scrollTop,
+                        };
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to load state:", error);
+                localStorage.removeItem('pixart_autosave'); // Clear corrupted data
+            }
+            return null; // Indicate no valid state was loaded
+        }
+
         // --- COLOR FUNCTIONS ---
         function updateCurrentColorDisplay(rgbStr) {
             currentColorDisplay.style.backgroundColor = rgbStr;
@@ -465,6 +516,7 @@
             currentMixedColor = 'rgb(255, 255, 255)';
             mixCount = 0;
             updateCurrentColorDisplay(currentMixedColor);
+            saveState();
         }
 
         // --- GRID FUNCTIONS ---
@@ -510,6 +562,7 @@
             if (currentGridLevel > 0) {
                 currentGridLevel--;
                 renderGrid();
+                saveState();
             }
         }
 
@@ -561,6 +614,7 @@
                 }
                 currentGridLevel++;
                 renderGrid();
+                saveState();
             }
         }
         
@@ -612,6 +666,7 @@
             // Adjust scroll to keep the point under the mouse
             drawingContainer.scrollLeft = (pointX * zoomLevel) - mouseX;
             drawingContainer.scrollTop = (pointY * zoomLevel) - mouseY;
+            saveState();
         }
         
         // --- FILE & IMAGE OPERATIONS ---
@@ -726,6 +781,7 @@
                         currentGridLevel = 0; // Start at highest detail
                         fitCanvasToScreen();
                         renderGrid();
+                        saveState(); // Save the newly loaded project state
                     } else {
                         throw new Error("Invalid file format.");
                     }
@@ -1032,6 +1088,7 @@
                 // Update the visible cell's color
                 const isWhite = currentMixedColor === 'rgb(255, 255, 255)';
                 cellElement.style.backgroundColor = isWhite ? 'transparent' : currentMixedColor;
+                saveState();
             }
         }
         
@@ -1183,15 +1240,37 @@
         }
 
         // --- App Start ---
-        initializeGridState();
-        fitCanvasToScreen();
-        renderGrid();
-        updateCurrentColorDisplay(currentMixedColor);
-        window.addEventListener('resize', fitCanvasToScreen);
+        function startApp() {
+            const loadedView = loadState();
 
-        currentColorDisplay.addEventListener('click', () => {
-            setMode('paint');
-        });
+            if (!loadedView) {
+                // No saved state, initialize a new one
+                initializeGridState();
+            }
+            
+            fitCanvasToScreen(); // This sizes the canvas and sets initial zoom/scroll for new sessions
+            renderGrid();
+            updateCurrentColorDisplay(currentMixedColor);
+
+            if (loadedView) {
+                // If a state was loaded, restore the saved view
+                canvasWrapper.style.transform = `scale(${zoomLevel})`;
+                drawingContainer.scrollLeft = loadedView.scrollLeft;
+                drawingContainer.scrollTop = loadedView.scrollTop;
+            }
+
+            window.addEventListener('resize', fitCanvasToScreen);
+
+            currentColorDisplay.addEventListener('click', () => {
+                setMode('paint');
+            });
+
+            // Add listener to save view changes on pan/scroll
+            drawingContainer.addEventListener('scroll', saveState);
+        }
+
+        startApp();
+
     </script>
 
 </body>
