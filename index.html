@@ -1108,27 +1108,30 @@
         rightTrigger.addEventListener('click', (e) => { e.stopPropagation(); showToolbar(rightToolbar) });
         leftTrigger.addEventListener('click', (e) => { e.stopPropagation(); showToolbar(leftToolbar) });
 
-        // --- DRAGGABLE & RESIZABLE LOGIC ---
+        // --- DRAGGABLE & RESIZABLE LOGIC (MOBILE FIXED) ---
         function makeDraggable(element, boundaryElement = window) {
             let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-            
-            function dragMouseDown(e) {
-                // Prevent drag from starting on certain child elements
+
+            function dragStart(e) {
                 if (e.target.classList.contains('resize-handle')) return;
-                
                 e.stopPropagation();
-                e.preventDefault();
+                
                 const point = e.touches ? e.touches[0] : e;
                 pos3 = point.clientX;
                 pos4 = point.clientY;
-                document.addEventListener('mouseup', closeDragElement);
-                document.addEventListener('mousemove', elementDrag);
-                document.addEventListener('touchend', closeDragElement);
-                document.addEventListener('touchmove', elementDrag, { passive: false });
+                
+                if (e.touches) {
+                    window.addEventListener('touchmove', elementDrag, { passive: false });
+                    window.addEventListener('touchend', dragEnd);
+                } else {
+                    window.addEventListener('mousemove', elementDrag);
+                    window.addEventListener('mouseup', dragEnd);
+                }
             }
 
             function elementDrag(e) {
-                e.preventDefault();
+                e.preventDefault(); 
+                
                 const point = e.touches ? e.touches[0] : e;
                 pos1 = pos3 - point.clientX;
                 pos2 = pos4 - point.clientY;
@@ -1138,7 +1141,6 @@
                 let newTop = element.offsetTop - pos2;
                 let newLeft = element.offsetLeft - pos1;
 
-                // FIX: Only apply boundary constraints if the boundary is not the window object
                 if (boundaryElement !== window) {
                     const boundaryRect = boundaryElement.getBoundingClientRect();
                     const parentRect = element.offsetParent.getBoundingClientRect();
@@ -1148,25 +1150,23 @@
                     const maxLeft = minLeft + boundaryRect.width - element.offsetWidth;
                     const maxTop = minTop + boundaryRect.height - element.offsetHeight;
 
-                    if (newLeft < minLeft) newLeft = minLeft;
-                    if (newTop < minTop) newTop = minTop;
-                    if (newLeft > maxLeft) newLeft = maxLeft;
-                    if (newTop > maxTop) newTop = maxTop;
+                    newLeft = Math.max(minLeft, Math.min(newLeft, maxLeft));
+                    newTop = Math.max(minTop, Math.min(newTop, maxTop));
                 }
 
                 element.style.top = newTop + "px";
                 element.style.left = newLeft + "px";
             }
 
-            function closeDragElement() {
-                document.removeEventListener('mouseup', closeDragElement);
-                document.removeEventListener('mousemove', elementDrag);
-                document.removeEventListener('touchend', closeDragElement);
-                document.removeEventListener('touchmove', elementDrag);
+            function dragEnd() {
+                window.removeEventListener('mousemove', elementDrag);
+                window.removeEventListener('mouseup', dragEnd);
+                window.removeEventListener('touchmove', elementDrag);
+                window.removeEventListener('touchend', dragEnd);
             }
             
-            element.addEventListener('mousedown', dragMouseDown);
-            element.addEventListener('touchstart', dragMouseDown, { passive: false });
+            element.addEventListener('mousedown', dragStart);
+            element.addEventListener('touchstart', dragStart, { passive: false });
         }
 
         function makeResizable(element, handle, aspectRatio) {
@@ -1174,16 +1174,19 @@
 
             function startResize(e) {
                 e.stopPropagation();
-                e.preventDefault();
                 const point = e.touches ? e.touches[0] : e;
                 startX = point.clientX;
                 startY = point.clientY;
                 startWidth = parseInt(document.defaultView.getComputedStyle(element).width, 10);
                 startHeight = parseInt(document.defaultView.getComputedStyle(element).height, 10);
-                document.documentElement.addEventListener('mousemove', doResize, false);
-                document.documentElement.addEventListener('mouseup', stopResize, false);
-                document.documentElement.addEventListener('touchmove', doResize, { passive: false });
-                document.documentElement.addEventListener('touchend', stopResize, false);
+                
+                if (e.touches) {
+                    window.addEventListener('touchmove', doResize, { passive: false });
+                    window.addEventListener('touchend', stopResize);
+                } else {
+                    window.addEventListener('mousemove', doResize);
+                    window.addEventListener('mouseup', stopResize);
+                }
             }
 
             function doResize(e) {
@@ -1191,7 +1194,6 @@
                 const point = e.touches ? e.touches[0] : e;
                 const newWidth = startWidth + point.clientX - startX;
                 element.style.width = newWidth + 'px';
-                // Maintain aspect ratio
                 if (aspectRatio) {
                     element.style.height = (newWidth / aspectRatio) + 'px';
                 } else {
@@ -1200,15 +1202,16 @@
             }
 
             function stopResize() {
-                document.documentElement.removeEventListener('mousemove', doResize, false);
-                document.documentElement.removeEventListener('mouseup', stopResize, false);
-                document.documentElement.removeEventListener('touchmove', doResize);
-                document.documentElement.removeEventListener('touchend', stopResize, false);
+                window.removeEventListener('mousemove', doResize);
+                window.removeEventListener('mouseup', stopResize);
+                window.removeEventListener('touchmove', doResize);
+                window.removeEventListener('touchend', stopResize);
             }
             
-            handle.addEventListener('mousedown', startResize, false);
+            handle.addEventListener('mousedown', startResize);
             handle.addEventListener('touchstart', startResize, { passive: false });
         }
+
 
         makeDraggable(draggableColorMixer);
 
