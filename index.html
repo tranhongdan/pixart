@@ -54,6 +54,7 @@
             display: grid;
             background-color: transparent;
             z-index: 10;
+            transition: opacity 0.1s ease-in-out; /* Added for smooth opacity change */
         }
         .grid-cell {
             border: 0.1px solid #e5e7eb;
@@ -202,7 +203,7 @@
     </div>
 
     <div id="top-trigger" class="toolbar-trigger">
-         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg>
+         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708 .708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg>
     </div>
 
     <div id="bottom-trigger" class="toolbar-trigger">
@@ -252,6 +253,10 @@
                 <button id="delete-image-btn" title="Delete Background Image" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg></button>
                 <button id="toggle-visibility-btn" title="Toggle Image Visibility" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md"><svg id="visibility-on-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/></svg><svg id="visibility-off-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="hidden" viewBox="0 0 16 16"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7.029 7.029 0 0 0 2.79-.588zM5.21 3.088A7.028 7.028 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474L5.21 3.089z"/><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829l-2.83-2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12-.708.708z"/></svg></button>
                 <button id="toggle-layer-btn" title="Toggle Image Layer" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md"><svg id="layer-back-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M1 5h14v1H1V5zm0 5h14v1H1v-1zM5 1v14h1V1H5zm5 0v14h1V1h-1z" fill-opacity="0.5"/><path fill-rule="evenodd" clip-rule="evenodd" d="M14 3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h12zM2 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H2z"/></svg><svg id="layer-front-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="hidden" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M14 3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h12zM2 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H2z" fill-opacity="0.5"/><path d="M1 5h14v1H1V5zm0 5h14v1H1v-1zM5 1v14h1V1H5zm5 0v14h1V1h-1z"/></svg></button>
+                <div class="flex items-center gap-2 px-2" title="Drawing Opacity">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="white" viewBox="0 0 16 16"><path d="M8 12.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9zm0 1a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11z"/><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8z"/></svg>
+                    <input id="opacity-slider" type="range" min="0" max="1" step="0.05" value="1" class="w-24 cursor-pointer">
+                </div>
             </div>
 
             <div class="flex items-center gap-3 p-2 rounded-lg bg-gray-900/50">
@@ -354,6 +359,7 @@
         const toggleVisibilityBtn = document.getElementById('toggle-visibility-btn');
         const visibilityOnIcon = document.getElementById('visibility-on-icon');
         const visibilityOffIcon = document.getElementById('visibility-off-icon');
+        const opacitySlider = document.getElementById('opacity-slider');
 
         // View & Mode Buttons
         const fitCanvasBtn = document.getElementById('fit-canvas-btn');
@@ -387,6 +393,7 @@
         let isPainting = false;
         let isPanning = false;
         let startX, startY, scrollLeft, scrollTop;
+        let drawingOpacity = 1.0;
 
         // --- UTILITY FUNCTIONS ---
         function showMessage(text, type = 'error') {
@@ -412,6 +419,7 @@
                         currentMixedColor,
                         mixCount,
                         backgroundColor,
+                        drawingOpacity,
                     };
                     localStorage.setItem('pixart_autosave', JSON.stringify(state));
                 } catch (error) {
@@ -433,6 +441,7 @@
                         currentMixedColor = state.currentMixedColor || 'rgb(255, 255, 255)';
                         mixCount = state.mixCount || 0;
                         backgroundColor = state.hasOwnProperty('backgroundColor') ? state.backgroundColor : '#ffffff';
+                        drawingOpacity = state.hasOwnProperty('drawingOpacity') ? state.drawingOpacity : 1.0;
                         
                         return { scrollLeft: state.scrollLeft, scrollTop: state.scrollTop };
                     }
@@ -541,7 +550,6 @@
                         const startRow = r * newLevel.span;
                         const startCol = c * newLevel.span;
                         
-                        // Find the most dominant color in the block of cells being merged
                         const colors = [];
                         for(let i = 0; i < oldLevel.span * 2; i += oldLevel.span) {
                             for(let j = 0; j < oldLevel.span * 2; j += oldLevel.span) {
@@ -562,7 +570,6 @@
                             dominantColor = Object.keys(colorCounts).reduce((a, b) => colorCounts[a] > colorCounts[b] ? a : b);
                         } 
                         
-                        // Apply the dominant color to all cells in the new, larger block
                         for (let i = 0; i < newLevel.span; i++) {
                             for (let j = 0; j < newLevel.span; j++) {
                                 const targetRow = startRow + i;
@@ -613,16 +620,13 @@
             const mouseX = eventPoint ? eventPoint.clientX - rect.left : drawingContainer.clientWidth / 2;
             const mouseY = eventPoint ? eventPoint.clientY - rect.top : drawingContainer.clientHeight / 2;
 
-            // Calculate the point on the canvas under the mouse before zoom
             const pointX = (drawingContainer.scrollLeft + mouseX) / zoomLevel;
             const pointY = (drawingContainer.scrollTop + mouseY) / zoomLevel;
             
-            // Apply new zoom level
             const newZoomLevel = direction === 'in' ? zoomLevel * ZOOM_STEP : zoomLevel / ZOOM_STEP;
             zoomLevel = Math.max(0.1, Math.min(newZoomLevel, 20));
             canvasWrapper.style.transform = `scale(${zoomLevel})`;
             
-            // Adjust scroll to keep the point under the mouse after zoom
             drawingContainer.scrollLeft = (pointX * zoomLevel) - mouseX;
             drawingContainer.scrollTop = (pointY * zoomLevel) - mouseY;
             saveState();
@@ -656,9 +660,13 @@
                 initializeGridState();
                 currentGridLevel = DEFAULT_GRID_LEVEL;
                 backgroundColor = '#ffffff';
+                drawingOpacity = 1.0;
                 
                 backgroundLayer.classList.remove('checkerboard');
                 backgroundLayer.style.backgroundColor = backgroundColor;
+                
+                drawingArea.style.opacity = drawingOpacity;
+                opacitySlider.value = drawingOpacity;
                 
                 deleteImage();
                 fitCanvasToScreen();
@@ -684,6 +692,8 @@
 
             const cellScaleX = SAVE_WIDTH / GRID_COLS;
             const cellScaleY = SAVE_HEIGHT / GRID_ROWS;
+
+            ctx.globalAlpha = 1.0; 
 
             for (let r = 0; r < GRID_ROWS; r++) {
                 for (let c = 0; c < GRID_COLS; c++) {
@@ -752,7 +762,6 @@
             reader.onload = (e) => {
                 try {
                     const loadedData = JSON.parse(e.target.result);
-                    // Support legacy format (just an array) and new format ({gridState, backgroundColor})
                     const projectGridState = Array.isArray(loadedData) ? loadedData : loadedData.gridState;
                     const projectBgColor = loadedData.hasOwnProperty('backgroundColor') ? loadedData.backgroundColor : '#ffffff';
 
@@ -762,9 +771,8 @@
                     
                     const loadedRows = projectGridState.length;
                     const loadedCols = projectGridState[0].length;
-                    initializeGridState(); // Reset to clean state
+                    initializeGridState();
 
-                    // Scale loaded project to fit the app's internal grid dimensions
                     for (let r = 0; r < GRID_ROWS; r++) {
                         for (let c = 0; c < GRID_COLS; c++) {
                             const sourceR = Math.floor(r * (loadedRows / GRID_ROWS));
@@ -778,7 +786,7 @@
                     backgroundColor = projectBgColor;
                     updateBackgroundDisplay();
                     
-                    currentGridLevel = 0; // Show finest detail initially
+                    currentGridLevel = 0;
                     fitCanvasToScreen();
                     renderGrid();
                     saveState();
@@ -787,7 +795,7 @@
                     console.error("Error loading project:", error);
                     showMessage("Invalid or corrupted project file.");
                 } finally {
-                    loadProjectInput.value = ''; // Reset input
+                    loadProjectInput.value = '';
                 }
             };
             reader.readAsText(file);
@@ -820,7 +828,7 @@
         }
 
         function createPastedImage(blob) {
-            deleteImage(); // Ensure only one image at a time
+            deleteImage(); 
             const url = URL.createObjectURL(blob);
             
             const imageWrapper = document.createElement('div');
@@ -857,7 +865,7 @@
             
             hasBackgroundImage = true;
             isImageVisible = true;
-            isImageInFront = false; // Default to behind the grid
+            isImageInFront = false;
             updateImageControlsVisibility();
             updateLayerOrder();
             updateImageVisibility();
@@ -869,6 +877,14 @@
             imageLayer.innerHTML = '';
             hasBackgroundImage = false;
             updateImageControlsVisibility();
+
+            // === MODIFICATION START ===
+            // Reset opacity when image is deleted
+            drawingOpacity = 1.0;
+            drawingArea.style.opacity = drawingOpacity;
+            opacitySlider.value = drawingOpacity;
+            saveState();
+            // === MODIFICATION END ===
         }
 
         function updateLayerOrder() {
@@ -902,7 +918,7 @@
             const span = GRID_LEVELS[currentGridLevel].span;
 
             if (gridState[row]?.[col]) {
-                if (gridState[row][col].color === currentMixedColor) return; // No change needed
+                if (gridState[row][col].color === currentMixedColor) return;
 
                 for(let i = 0; i < span; i++) {
                     for(let j = 0; j < span; j++) {
@@ -934,16 +950,14 @@
         }
 
         function handleCanvasStart(e) {
-            // Check if any toolbar is currently visible
             const isToolbarVisible = topToolbar.classList.contains('visible') || bottomToolbar.classList.contains('visible');
 
             if (isToolbarVisible) {
-                hideToolbars(); // On the first click, just hide the toolbars
-                e.preventDefault(); // Prevent any other default browser action
-                return; // And do nothing else. The action (paint, pan) will happen on the next click.
+                hideToolbars();
+                e.preventDefault();
+                return;
             }
 
-            // --- If no toolbar was visible, proceed with the normal action ---
             const point = e.touches ? e.touches[0] : e;
             
             if (currentMode === 'pan') {
@@ -965,12 +979,12 @@
                     currentMixedColor = pickedColor || null;
                     mixCount = pickedColor ? 1 : 0;
                     updateCurrentColorDisplay(currentMixedColor);
-                } else { // Clicked on background
+                } else {
                     currentMixedColor = backgroundColor;
                     mixCount = 1;
                     updateCurrentColorDisplay(backgroundColor);
                 }
-                setMode('paint'); // Switch back to paint mode after picking a color
+                setMode('paint');
                 return;
             }
             
@@ -1143,6 +1157,12 @@
             deleteImageBtn.addEventListener('click', deleteImage);
             toggleVisibilityBtn.addEventListener('click', toggleImageVisibility);
             toggleLayerBtn.addEventListener('click', () => { isImageInFront = !isImageInFront; updateLayerOrder(); });
+            opacitySlider.addEventListener('input', () => {
+                drawingOpacity = parseFloat(opacitySlider.value);
+                drawingArea.style.opacity = drawingOpacity;
+                saveState();
+            });
+
 
             // Toolbars
             bottomTrigger.addEventListener('click', (e) => { e.stopPropagation(); showToolbar(bottomToolbar); });
@@ -1185,6 +1205,9 @@
             updateImageControlsVisibility();
             makeDraggable(draggableColorMixer);
             setupEventListeners();
+            
+            drawingArea.style.opacity = drawingOpacity;
+            opacitySlider.value = drawingOpacity;
 
             if (loadedView) {
                 canvasWrapper.style.transform = `scale(${zoomLevel})`;
