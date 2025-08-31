@@ -261,6 +261,11 @@
                 <path d="M1 5h14v1H1V5zm0 5h14v1H1v-1zM5 1v14h1V1H5zm5 0v14h1V1h-1z"/>
             </svg>
         </button>
+        <button id="bg-color-btn" title="Áp dụng màu đang chọn cho nền" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#ef4444" class="bi bi-square-fill" viewBox="0 0 16 16">
+              <rect width="16" height="16" rx="2"/>
+            </svg>
+        </button>
         <button id="fit-canvas-btn" title="Vừa màn hình" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrows-angle-contract" viewBox="0 0 16 16">
                 <path fill-rule="evenodd" d="M.172 15.828a.5.5 0 0 0 .707 0l4.096-4.096V14.5a.5.5 0 1 0 1 0v-3.975a.5.5 0 0 0-.5-.5H1.5a.5.5 0 0 0 0 1h2.768L.172 15.121a.5.5 0 0 0 0 .707zM15.828.172a.5.5 0 0 0-.707 0L11.025 4.268V1.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H14.5a.5.5 0 0 0 0-1h-2.768L15.828.879a.5.5 0 0 0 0-.707z"/>
@@ -321,7 +326,8 @@
         let currentMode = 'paint';
         let hasBackgroundImage = false;
         let isImageInFront = false;
-        let isImageVisible = true; // New state for image visibility
+        let isImageVisible = true;
+        let backgroundColor = '#ffffff';
 
         // --- COLORS ---
         const baseColors = {
@@ -371,6 +377,7 @@
         const toggleVisibilityBtn = document.getElementById('toggle-visibility-btn');
         const visibilityOnIcon = document.getElementById('visibility-on-icon');
         const visibilityOffIcon = document.getElementById('visibility-off-icon');
+        const bgColorBtn = document.getElementById('bg-color-btn');
 
         // Mode Buttons
         const zoomInBtn = document.getElementById('zoom-in-mode');
@@ -409,6 +416,7 @@
                         scrollTop: drawingContainer.scrollTop,
                         currentMixedColor: currentMixedColor,
                         mixCount: mixCount,
+                        backgroundColor: backgroundColor,
                     };
                     localStorage.setItem('pixart_autosave', JSON.stringify(state));
                 } catch (error) {
@@ -430,6 +438,8 @@
                         zoomLevel = state.zoomLevel || 1.0;
                         currentMixedColor = state.currentMixedColor || 'rgb(255, 255, 255)';
                         mixCount = state.mixCount || 0;
+                        backgroundColor = state.backgroundColor || '#ffffff';
+                        backgroundLayer.style.backgroundColor = backgroundColor;
                         
                         // Return view properties to be applied after canvas sizing
                         return {
@@ -636,7 +646,7 @@
             const ctx = canvas.getContext('2d');
             
             // Set a white background first
-            ctx.fillStyle = 'white';
+            ctx.fillStyle = backgroundLayer.style.backgroundColor || '#ffffff';
             ctx.fillRect(0, 0, saveWidth, saveHeight);
 
             ctx.imageSmoothingEnabled = false;
@@ -689,8 +699,12 @@
 
         function saveProject() {
             try {
-                const projectData = JSON.stringify(gridState);
-                const blob = new Blob([projectData], { type: 'application/json' });
+                const projectData = {
+                    gridState: gridState,
+                    backgroundColor: backgroundColor
+                };
+                const projectString = JSON.stringify(projectData);
+                const blob = new Blob([projectString], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.download = 'project.pixart';
@@ -714,33 +728,46 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    const projectData = JSON.parse(e.target.result);
-                    // More robust validation
-                    if (Array.isArray(projectData) && projectData.length > 0 && Array.isArray(projectData[0]) && projectData[0].length > 0 && projectData[0][0].hasOwnProperty('color')) {
+                    const loadedData = JSON.parse(e.target.result);
+                    let projectGridState;
+                    let projectBgColor = '#ffffff';
+
+                    if (Array.isArray(loadedData)) {
+                        projectGridState = loadedData;
+                    } else if (loadedData.gridState) {
+                        projectGridState = loadedData.gridState;
+                        projectBgColor = loadedData.backgroundColor || '#ffffff';
+                    } else {
+                        throw new Error("Invalid file format.");
+                    }
+
+                    if (Array.isArray(projectGridState) && projectGridState.length > 0 && Array.isArray(projectGridState[0]) && projectGridState[0].length > 0 && projectGridState[0][0].hasOwnProperty('color')) {
                         
-                        const loadedRows = projectData.length;
-                        const loadedCols = projectData[0].length;
+                        const loadedRows = projectGridState.length;
+                        const loadedCols = projectGridState[0].length;
 
-                        initializeGridState(); // Reset to standard size
+                        initializeGridState();
 
-                        // Resample loaded data into the standard grid size
                         for (let r = 0; r < GRID_ROWS; r++) {
                             for (let c = 0; c < GRID_COLS; c++) {
                                 const sourceR = Math.floor(r * (loadedRows / GRID_ROWS));
                                 const sourceC = Math.floor(c * (loadedCols / GRID_COLS));
                                 
-                                if (projectData[sourceR]?.[sourceC]) {
-                                    gridState[r][c] = projectData[sourceR][sourceC];
+                                if (projectGridState[sourceR]?.[sourceC]) {
+                                    gridState[r][c] = projectGridState[sourceR][sourceC];
                                 }
                             }
                         }
+
+                        backgroundColor = projectBgColor;
+                        backgroundLayer.style.backgroundColor = backgroundColor;
                         
-                        currentGridLevel = 0; // Start at highest detail
+                        currentGridLevel = 0;
                         fitCanvasToScreen();
                         renderGrid();
-                        saveState(); // Save the newly loaded project state
+                        saveState();
                     } else {
-                        throw new Error("Invalid file format.");
+                        throw new Error("Invalid grid data in file.");
                     }
                 } catch (error) {
                     console.error("Error loading project:", error);
@@ -748,7 +775,7 @@
                 }
             };
             reader.readAsText(file);
-            loadProjectInput.value = ''; // Reset for next load
+            loadProjectInput.value = '';
         }
 
         function handlePaste(event) {
@@ -906,6 +933,11 @@
             }
         });
 
+        bgColorBtn.addEventListener('click', () => {
+            backgroundColor = currentMixedColor;
+            backgroundLayer.style.backgroundColor = backgroundColor;
+            saveState();
+        });
 
         clearBrushBtn.addEventListener('click', clearBrush);
         gridButtons.merge.addEventListener('click', globalMerge);
