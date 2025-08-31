@@ -224,6 +224,12 @@
     <div id="top-toolbar" class="toolbar">
         <div class="flex flex-nowrap items-center justify-start gap-3 p-4">
             <div class="flex items-center gap-3 p-2 rounded-lg bg-gray-900/50">
+                <button id="new-project-btn" title="Tạo Project Mới" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-file-earmark-plus" viewBox="0 0 16 16">
+                        <path d="M8 6.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V11a.5.5 0 0 1-1 0V9.5H6a.5.5 0 0 1 0-1h1.5V7a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
+                    </svg>
+                </button>
                 <button id="save-project-btn" title="Lưu Project" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-file-earmark-arrow-down" viewBox="0 0 16 16"><path d="M8.5 6.5a.5.5 0 0 0-1 0v3.793L6.354 9.146a.5.5 0 1 0-.708.708l2 2a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0-.708-.708L8.5 10.293V6.5z"/><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 1.5v2A1.5 1.5 0 0 0 11 5h2V2.47l-3.5-3.5zM4 1h5.5v4A1.5 1.5 0 0 0 11 6.5h.5v7.5a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V2a.5.5 0 0 1 .5-.5z"/></svg>
                 </button>
@@ -345,6 +351,7 @@
         const messageBox = document.getElementById('message-box');
         
         // File & Image Operations
+        const newProjectBtn = document.getElementById('new-project-btn'); // ADDED
         const saveImageBtn = document.getElementById('save-image-btn');
         const saveOptionsContainer = document.getElementById('save-options-container');
         const saveWithGridBtn = document.getElementById('save-with-grid-btn');
@@ -424,7 +431,7 @@
                         zoomLevel = state.zoomLevel || 1.0;
                         currentMixedColor = state.currentMixedColor || 'rgb(255, 255, 255)';
                         mixCount = state.mixCount || 0;
-                        backgroundColor = state.hasOwnProperty('backgroundColor') ? state.backgroundColor : null;
+                        backgroundColor = state.hasOwnProperty('backgroundColor') ? state.backgroundColor : '#ffffff';
                         
                         return {
                             scrollLeft: state.scrollLeft,
@@ -640,6 +647,28 @@
         }
         
         // --- FILE & IMAGE OPERATIONS ---
+        
+        // ADDED FUNCTION
+        function createNewProject() {
+            if (confirm("Bạn có chắc muốn tạo một project mới? Mọi thay đổi chưa lưu sẽ bị mất.")) {
+                initializeGridState(); // Reset grid data
+                currentGridLevel = 4; // Set to 32x18 as requested
+                backgroundColor = '#ffffff'; // Set background to white
+                
+                // Update background layer visually
+                backgroundLayer.classList.remove('checkerboard');
+                backgroundLayer.style.backgroundColor = backgroundColor;
+                
+                deleteImage(); // Remove any pasted image
+                
+                fitCanvasToScreen(); // Fit the new canvas
+                renderGrid(); // Render the new grid
+                saveState(); // Save this new clean state
+                
+                showMessage("Đã tạo project mới.", 'success');
+            }
+        }
+
         function saveImage(withGrid) {
             const canvas = document.createElement('canvas');
             const saveWidth = 2560;
@@ -731,14 +760,14 @@
                 try {
                     const loadedData = JSON.parse(e.target.result);
                     let projectGridState;
-                    let projectBgColor = null;
+                    let projectBgColor = '#ffffff';
 
                     if (Array.isArray(loadedData)) {
                         projectGridState = loadedData;
-                        projectBgColor = null;
+                        projectBgColor = '#ffffff';
                     } else if (loadedData.gridState) {
                         projectGridState = loadedData.gridState;
-                        projectBgColor = loadedData.hasOwnProperty('backgroundColor') ? loadedData.backgroundColor : null;
+                        projectBgColor = loadedData.hasOwnProperty('backgroundColor') ? loadedData.backgroundColor : '#ffffff';
                     } else {
                         throw new Error("Invalid file format.");
                     }
@@ -906,6 +935,8 @@
 
 
         // --- EVENT LISTENERS ---
+        newProjectBtn.addEventListener('click', createNewProject); // ADDED
+        
         colorPalette.addEventListener('click', (event) => {
             const button = event.target.closest('button.color-swatch');
             if (button && button.dataset.color) {
