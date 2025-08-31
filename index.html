@@ -928,7 +928,16 @@
         }
 
         function handleCanvasStart(e) {
-            hideToolbars();
+            // Check if any toolbar is currently visible
+            const isToolbarVisible = topToolbar.classList.contains('visible') || bottomToolbar.classList.contains('visible');
+
+            if (isToolbarVisible) {
+                hideToolbars(); // On the first click, just hide the toolbars
+                e.preventDefault(); // Prevent any other default browser action
+                return; // And do nothing else. The action (paint, pan) will happen on the next click.
+            }
+
+            // --- If no toolbar was visible, proceed with the normal action ---
             const point = e.touches ? e.touches[0] : e;
             
             if (currentMode === 'pan') {
