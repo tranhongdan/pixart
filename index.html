@@ -201,7 +201,7 @@
             <button data-color="black" class="color-swatch w-12 h-12 rounded-full border-2 border-white shadow-md" style="background-color: #1f2937;"></button>
             <button data-color="white" class="color-swatch w-12 h-12 rounded-full border-2 border-gray-300 shadow-md" style="background-color: #ffffff;"></button>
         </div>
-        <button id="clear-brush" title="Làm sạch cọ" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
+        <button id="clear-brush" title="Cục tẩy" class="action-btn bg-white hover:bg-gray-200 text-gray-700 p-3 rounded-lg shadow-md">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-eraser-fill" viewBox="0 0 16 16"><path d="M8.086 2.207a2 2 0 0 1 2.828 0l3.879 3.879a2 2 0 0 1 0 2.828l-5.5 5.5A2 2 0 0 1 7.879 15H5.12a2 2 0 0 1-1.414-.586l-2.5-2.5a2 2 0 0 1 0-2.828l6.879-6.879zm.66 11.34L3.453 8.254 1.914 9.793a1 1 0 0 0 0 1.414l2.5 2.5a1 1 0 0 0 .707.293H7.88a1 1 0 0 0 .707-.293l.16-.16z"/></svg>
         </button>
     </div>
@@ -457,13 +457,26 @@
 
         // --- COLOR FUNCTIONS ---
         function updateCurrentColorDisplay(rgbStr) {
-            currentColorDisplay.style.backgroundColor = rgbStr;
+            if (rgbStr === null) {
+                currentColorDisplay.style.backgroundColor = 'white'; // fallback
+                currentColorDisplay.style.backgroundImage = `
+                    linear-gradient(45deg, #ccc 25%, transparent 25%),
+                    linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #ccc 75%),
+                    linear-gradient(-45deg, transparent 75%, #ccc 75%)`;
+                currentColorDisplay.style.backgroundSize = '16px 16px';
+                currentColorDisplay.style.backgroundPosition = '0 0, 0 8px, 8px -8px, -8px 0px';
+            } else {
+                currentColorDisplay.style.backgroundImage = 'none';
+                currentColorDisplay.style.backgroundColor = rgbStr;
+            }
         }
 
         function mixColor(newColorRgb) {
             let oldRgb;
-            if (mixCount === 0) {
-                oldRgb = [255, 255, 255]; // Start from white
+            if (mixCount === 0 || currentMixedColor === null) {
+                oldRgb = [255, 255, 255]; // Start from white if erasing or fresh mix
+                 mixCount = 0; // Reset mix count when starting from eraser
             } else {
                 oldRgb = currentMixedColor.match(/\d+/g).map(Number);
             }
@@ -480,9 +493,9 @@
         }
         
         function clearBrush() {
-            currentMixedColor = 'rgb(255, 255, 255)';
+            currentMixedColor = null; // This now means eraser
             mixCount = 0;
-            updateCurrentColorDisplay(currentMixedColor);
+            updateCurrentColorDisplay(null);
             saveState();
         }
 
@@ -492,7 +505,7 @@
             for (let r = 0; r < rows; r++) {
                 gridState[r] = [];
                 for (let c = 0; c < cols; c++) {
-                    gridState[r][c] = { color: 'rgb(255, 255, 255)' };
+                    gridState[r][c] = { color: null };
                 }
             }
         }
@@ -511,14 +524,13 @@
                 for (let c = 0; c < cols; c++) {
                     const originalRow = r * span;
                     const originalCol = c * span;
-                    const cellData = gridState[originalRow]?.[originalCol] || { color: 'rgb(255, 255, 255)'};
+                    const cellData = gridState[originalRow]?.[originalCol] || { color: null};
                     
                     const cell = document.createElement('div');
                     cell.classList.add('grid-cell');
                     cell.dataset.row = originalRow;
                     cell.dataset.col = originalCol;
-                    const isWhite = cellData.color === 'rgb(255, 255, 255)';
-                    cell.style.backgroundColor = isWhite ? 'transparent' : cellData.color;
+                    cell.style.backgroundColor = cellData.color || 'transparent';
                     drawingArea.appendChild(cell);
                 }
             }
@@ -555,13 +567,13 @@
                             }
                         }
 
-                        const nonWhiteColors = colors.filter(color => color !== 'rgb(255, 255, 255)');
-                        let dominantColor = 'rgb(255, 255, 255)';
+                        const nonEmptyColors = colors.filter(color => color);
+                        let dominantColor = null;
 
-                        if (nonWhiteColors.length > 0) {
+                        if (nonEmptyColors.length > 0) {
                             // Find the most frequent color
                             const colorCounts = {};
-                            nonWhiteColors.forEach(color => {
+                            nonEmptyColors.forEach(color => {
                                 colorCounts[color] = (colorCounts[color] || 0) + 1;
                             });
                             dominantColor = Object.keys(colorCounts).reduce((a, b) => colorCounts[a] > colorCounts[b] ? a : b);
@@ -657,7 +669,7 @@
             // Draw all colored cells from the full-resolution grid state
             for (let r = 0; r < GRID_ROWS; r++) {
                 for (let c = 0; c < GRID_COLS; c++) {
-                    if (gridState[r]?.[c] && gridState[r][c].color !== 'rgb(255, 255, 255)') {
+                    if (gridState[r]?.[c] && gridState[r][c].color) {
                         ctx.fillStyle = gridState[r][c].color;
                         ctx.fillRect(Math.floor(c * cellScaleX), Math.floor(r * cellScaleY), Math.ceil(cellScaleX), Math.ceil(cellScaleY));
                     }
@@ -734,6 +746,14 @@
 
                     if (Array.isArray(loadedData)) {
                         projectGridState = loadedData;
+                        // Handle old format: convert white to null for transparency
+                        projectGridState.forEach(row => {
+                            row.forEach(cell => {
+                                if (cell.color === 'rgb(255, 255, 255)') {
+                                    cell.color = null;
+                                }
+                            });
+                        });
                     } else if (loadedData.gridState) {
                         projectGridState = loadedData.gridState;
                         projectBgColor = loadedData.backgroundColor || '#ffffff';
@@ -1029,7 +1049,6 @@
         function handleCanvasStart(e) {
             hideToolbars();
             const point = e.touches ? e.touches[0] : e;
-            const target = document.elementFromPoint(point.clientX, point.clientY);
             
             if (currentMode === 'pan') {
                 e.preventDefault();
@@ -1042,31 +1061,44 @@
                 return;
             }
 
-            if (target && target.classList.contains('grid-cell')) {
-                e.preventDefault();
-                if (currentMode === 'picker') {
-                    let pickedColor = target.style.backgroundColor;
-                    if (!pickedColor || pickedColor === 'transparent') {
-                        pickedColor = 'rgb(255, 255, 255)';
+            e.preventDefault();
+            if (currentMode === 'picker') {
+                const target = document.elementFromPoint(point.clientX, point.clientY);
+                if (target && target.classList.contains('grid-cell')) {
+                    const row = parseInt(target.dataset.row);
+                    const col = parseInt(target.dataset.col);
+                    const pickedColor = gridState[row]?.[col]?.color;
+
+                    if (pickedColor) {
+                        currentMixedColor = pickedColor;
+                        mixCount = 1;
+                        updateCurrentColorDisplay(currentMixedColor);
+                    } else { // Color is null (transparent)
+                        currentMixedColor = null;
+                        mixCount = 0;
+                        updateCurrentColorDisplay(null);
                     }
-                    currentMixedColor = pickedColor;
+                } else {
+                    // Clicked on the background
+                    currentMixedColor = backgroundColor;
                     mixCount = 1;
-                    updateCurrentColorDisplay(currentMixedColor);
-                    setMode('paint');
-                    return;
+                    updateCurrentColorDisplay(backgroundColor);
                 }
-                if (currentMode === 'paint') {
-                    isPainting = true;
-                    paintCell(target);
-                }
+                setMode('paint');
+                return;
+            }
+            
+            if (currentMode === 'paint') {
+                isPainting = true;
+                paintCellFromCoordinates(point.clientX, point.clientY);
             }
         }
+
 
         function handleCanvasMove(e) {
             if (isPainting) {
                 e.preventDefault();
                 const point = e.touches ? e.touches[0] : e;
-                // MODIFIED: Use coordinate calculation for reliability on iPad/touch devices
                 paintCellFromCoordinates(point.clientX, point.clientY);
             } else if (isPanning) {
                 e.preventDefault();
@@ -1098,6 +1130,9 @@
             const span = GRID_LEVELS[currentGridLevel].span;
 
             if (gridState[row]?.[col]) {
+                const currentColorInCell = gridState[row][col].color;
+                if (currentColorInCell === currentMixedColor) return; // Avoid redundant painting
+
                 // Apply color to the entire block in the base grid state
                 for(let i = 0; i < span; i++) {
                     for(let j = 0; j < span; j++) {
@@ -1107,8 +1142,7 @@
                     }
                 }
                 // Update the visible cell's color
-                const isWhite = currentMixedColor === 'rgb(255, 255, 255)';
-                cellElement.style.backgroundColor = isWhite ? 'transparent' : currentMixedColor;
+                cellElement.style.backgroundColor = currentMixedColor || 'transparent';
                 saveState();
             }
         }
