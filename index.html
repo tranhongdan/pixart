@@ -49,7 +49,6 @@
             height: 100%;
         }
         #background-layer {
-            background-color: white;
             z-index: 1;
         }
         #image-layer {
@@ -159,6 +158,26 @@
         #message-box.show {
             transform: translate(-50%, 0);
             opacity: 1;
+        }
+
+        /* Animation for warning */
+        @keyframes red-flash {
+            0% { background-color: white; }
+            50% { background-color: #fecaca; } /* Light red */
+            100% { background-color: white; }
+        }
+        .flashing-warning {
+            animation: red-flash 1s infinite;
+        }
+
+        .checkerboard {
+            background-image:
+                linear-gradient(45deg, #e5e7eb 25%, transparent 25%),
+                linear-gradient(-45deg, #e5e7eb 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #e5e7eb 75%),
+                linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
         }
     </style>
 </head>
@@ -310,16 +329,17 @@
 
     <script>
         // --- CONFIGURATION ---
-        const GRID_COLS = 256;
-        const GRID_ROWS = 144;
+        const GRID_COLS = 512; // Increased resolution
+        const GRID_ROWS = 288; // Increased resolution
         const GRID_LEVELS = [
-            { cols: 256, rows: 144, span: 1 },
-            { cols: 128, rows: 72, span: 2 },
-            { cols: 64, rows: 36, span: 4 },
-            { cols: 32, rows: 18, span: 8 },
-            { cols: 16, rows: 9, span: 16 }
+            { cols: 512, rows: 288, span: 1 },  // New highest resolution
+            { cols: 256, rows: 144, span: 2 },
+            { cols: 128, rows: 72, span: 4 },
+            { cols: 64, rows: 36, span: 8 },
+            { cols: 32, rows: 18, span: 16 },
+            { cols: 16, rows: 9, span: 32 }   // New lowest resolution
         ];
-        let currentGridLevel = 2;
+        let currentGridLevel = 3; // Adjusted to keep the same starting view
         let gridState = [];
         let zoomLevel = 1.0;
         const ZOOM_STEP = 1.2;
@@ -438,8 +458,7 @@
                         zoomLevel = state.zoomLevel || 1.0;
                         currentMixedColor = state.currentMixedColor || 'rgb(255, 255, 255)';
                         mixCount = state.mixCount || 0;
-                        backgroundColor = state.backgroundColor || '#ffffff';
-                        backgroundLayer.style.backgroundColor = backgroundColor;
+                        backgroundColor = state.hasOwnProperty('backgroundColor') ? state.backgroundColor : null;
                         
                         // Return view properties to be applied after canvas sizing
                         return {
@@ -600,6 +619,13 @@
         function updateButtonStates() {
             gridButtons.split.disabled = currentGridLevel === 0;
             gridButtons.merge.disabled = currentGridLevel === GRID_LEVELS.length - 1;
+
+            // Add flashing warning for split button when at the second-highest resolution
+            if (currentGridLevel === 1) {
+                gridButtons.split.classList.add('flashing-warning');
+            } else {
+                gridButtons.split.classList.remove('flashing-warning');
+            }
         }
 
         // --- UI MODE & VIEW FUNCTIONS ---
@@ -657,9 +683,11 @@
             canvas.height = saveHeight;
             const ctx = canvas.getContext('2d');
             
-            // Set a white background first
-            ctx.fillStyle = backgroundLayer.style.backgroundColor || '#ffffff';
-            ctx.fillRect(0, 0, saveWidth, saveHeight);
+            // Set background only if it's not transparent
+            if (backgroundColor !== null) {
+                ctx.fillStyle = backgroundColor;
+                ctx.fillRect(0, 0, saveWidth, saveHeight);
+            }
 
             ctx.imageSmoothingEnabled = false;
 
@@ -742,21 +770,16 @@
                 try {
                     const loadedData = JSON.parse(e.target.result);
                     let projectGridState;
-                    let projectBgColor = '#ffffff';
+                    let projectBgColor = null; // Default to transparent
 
                     if (Array.isArray(loadedData)) {
+                        // This is the old project format, which didn't have a background color property.
                         projectGridState = loadedData;
-                        // Handle old format: convert white to null for transparency
-                        projectGridState.forEach(row => {
-                            row.forEach(cell => {
-                                if (cell.color === 'rgb(255, 255, 255)') {
-                                    cell.color = null;
-                                }
-                            });
-                        });
+                        projectBgColor = null; // Assume transparent background for old projects
                     } else if (loadedData.gridState) {
                         projectGridState = loadedData.gridState;
-                        projectBgColor = loadedData.backgroundColor || '#ffffff';
+                        // New format can have 'backgroundColor'. If undefined or missing, it's transparent.
+                        projectBgColor = loadedData.hasOwnProperty('backgroundColor') ? loadedData.backgroundColor : null;
                     } else {
                         throw new Error("Invalid file format.");
                     }
@@ -780,7 +803,13 @@
                         }
 
                         backgroundColor = projectBgColor;
-                        backgroundLayer.style.backgroundColor = backgroundColor;
+                        if (backgroundColor === null) {
+                            backgroundLayer.classList.add('checkerboard');
+                            backgroundLayer.style.backgroundColor = '';
+                        } else {
+                            backgroundLayer.classList.remove('checkerboard');
+                            backgroundLayer.style.backgroundColor = backgroundColor;
+                        }
                         
                         currentGridLevel = 0;
                         fitCanvasToScreen();
@@ -955,7 +984,13 @@
 
         bgColorBtn.addEventListener('click', () => {
             backgroundColor = currentMixedColor;
-            backgroundLayer.style.backgroundColor = backgroundColor;
+            if (backgroundColor === null) {
+                backgroundLayer.classList.add('checkerboard');
+                backgroundLayer.style.backgroundColor = '';
+            } else {
+                backgroundLayer.classList.remove('checkerboard');
+                backgroundLayer.style.backgroundColor = backgroundColor;
+            }
             saveState();
         });
 
@@ -1304,6 +1339,15 @@
             if (!loadedView) {
                 // No saved state, initialize a new one
                 initializeGridState();
+            }
+            
+            // Apply background style based on loaded or default state
+            if (backgroundColor === null) {
+                backgroundLayer.classList.add('checkerboard');
+                backgroundLayer.style.backgroundColor = '';
+            } else {
+                backgroundLayer.classList.remove('checkerboard');
+                backgroundLayer.style.backgroundColor = backgroundColor;
             }
             
             fitCanvasToScreen(); // This sizes the canvas and sets initial zoom/scroll for new sessions
