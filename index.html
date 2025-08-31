@@ -33,7 +33,7 @@
         }
         #drawing-container {
             cursor: default;
-            touch-action: pan-x pan-y;
+            touch-action: none; /* Changed for better JS event control on touch devices */
             position: relative;
         }
         #canvas-wrapper {
@@ -959,6 +959,40 @@
             }
         });
 
+        // New function for painting based on coordinates. This is more reliable on touch devices like iPad.
+        function paintCellFromCoordinates(clientX, clientY) {
+            const rect = drawingArea.getBoundingClientRect();
+
+            // Check if the pointer is within the drawing area's bounds
+            if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+                return; // Exit if outside
+            }
+
+            // Calculate position relative to the drawingArea
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            const level = GRID_LEVELS[currentGridLevel];
+            const cols = level.cols;
+            const rows = level.rows;
+            
+            // Calculate cell dimensions
+            const cellWidth = rect.width / cols;
+            const cellHeight = rect.height / rows;
+
+            // Calculate which cell the pointer is over
+            const targetCol = Math.floor(x / cellWidth);
+            const targetRow = Math.floor(y / cellHeight);
+
+            // Calculate the index of the cell in the grid and get the element
+            const cellIndex = targetRow * cols + targetCol;
+            const cellElement = drawingArea.children[cellIndex];
+
+            // Call the original paintCell logic if the element exists
+            if (cellElement) {
+                paintCell(cellElement);
+            }
+        }
 
         function handleCanvasStart(e) {
             hideToolbars();
@@ -1000,10 +1034,8 @@
             if (isPainting) {
                 e.preventDefault();
                 const point = e.touches ? e.touches[0] : e;
-                const target = document.elementFromPoint(point.clientX, point.clientY);
-                if (target && target.classList.contains('grid-cell')) {
-                    paintCell(target);
-                }
+                // MODIFIED: Use coordinate calculation for reliability on iPad/touch devices
+                paintCellFromCoordinates(point.clientX, point.clientY);
             } else if (isPanning) {
                 e.preventDefault();
                 const point = e.touches ? e.touches[0] : e;
