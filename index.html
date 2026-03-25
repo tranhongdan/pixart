@@ -391,6 +391,10 @@
         let drawingOpacity = 1.0;
         let isSaveOptionsVisible = false;
 
+        // bien toi uu hieu suat
+        let chiSoOCuoiCung = -1;
+        let dangYeuCauPan = false;
+
         // --- UTILITY FUNCTIONS ---
         function showMessage(text, type = 'error') {
             messageBox.textContent = text;
@@ -406,8 +410,19 @@
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(() => {
                 try {
+                    // toi uu hoa luu tru: chi luu cac o co mau de tranh tran bo nho
+                    const mangToiUu = [];
+                    for (let r = 0; r < GRID_ROWS; r++) {
+                        for (let c = 0; c < GRID_COLS; c++) {
+                            if (gridState[r] && gridState[r][c] && gridState[r][c].color) {
+                                mangToiUu.push([r, c, gridState[r][c].color]);
+                            }
+                        }
+                    }
+
                     const state = {
-                        gridState,
+                        sparseGrid: mangToiUu,
+                        isSparse: true,
                         currentGridLevel,
                         zoomLevel,
                         scrollLeft: drawingContainer.scrollLeft,
@@ -430,8 +445,20 @@
                 const savedState = localStorage.getItem('pixart_autosave');
                 if (savedState) {
                     const state = JSON.parse(savedState);
-                    if (state.gridState && state.hasOwnProperty('currentGridLevel')) {
-                        gridState = state.gridState;
+                    if ((state.gridState || state.isSparse) && state.hasOwnProperty('currentGridLevel')) {
+                        
+                        // ho tro dinh dang cu hoac doc tu dinh dang toi uu
+                        if (state.isSparse) {
+                            initializeGridState();
+                            state.sparseGrid.forEach(item => {
+                                if (gridState[item[0]] && gridState[item[0]][item[1]]) {
+                                    gridState[item[0]][item[1]].color = item[2];
+                                }
+                            });
+                        } else {
+                            gridState = state.gridState;
+                        }
+
                         currentGridLevel = state.currentGridLevel;
                         zoomLevel = state.zoomLevel || 1.0;
                         currentMixedColor = state.currentMixedColor || 'rgb(255, 255, 255)';
@@ -762,7 +789,16 @@
 
         function saveProject() {
             try {
-                const projectData = { gridState, backgroundColor };
+                // toi uu data luu thanh file
+                const mangToiUu = [];
+                for (let r = 0; r < GRID_ROWS; r++) {
+                    for (let c = 0; c < GRID_COLS; c++) {
+                        if (gridState[r] && gridState[r][c] && gridState[r][c].color) {
+                            mangToiUu.push([r, c, gridState[r][c].color]);
+                        }
+                    }
+                }
+                const projectData = { sparseGrid: mangToiUu, isSparse: true, backgroundColor };
                 const blob = new Blob([JSON.stringify(projectData)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
@@ -788,23 +824,33 @@
             reader.onload = (e) => {
                 try {
                     const loadedData = JSON.parse(e.target.result);
-                    const projectGridState = Array.isArray(loadedData) ? loadedData : loadedData.gridState;
                     const projectBgColor = loadedData.hasOwnProperty('backgroundColor') ? loadedData.backgroundColor : '#ffffff';
 
-                    if (!Array.isArray(projectGridState) || !projectGridState[0]?.[0]?.hasOwnProperty('color')) {
-                         throw new Error("Invalid grid data in file.");
-                    }
-                    
-                    const loadedRows = projectGridState.length;
-                    const loadedCols = projectGridState[0].length;
                     initializeGridState();
 
-                    for (let r = 0; r < GRID_ROWS; r++) {
-                        for (let c = 0; c < GRID_COLS; c++) {
-                            const sourceR = Math.floor(r * (loadedRows / GRID_ROWS));
-                            const sourceC = Math.floor(c * (loadedCols / GRID_COLS));
-                            if (projectGridState[sourceR]?.[sourceC]) {
-                                gridState[r][c] = projectGridState[sourceR][sourceC];
+                    // tuong thich form luu moi (toi uu) hoac form cu
+                    if (loadedData.isSparse) {
+                        loadedData.sparseGrid.forEach(item => {
+                            if (gridState[item[0]] && gridState[item[0]][item[1]]) {
+                                gridState[item[0]][item[1]].color = item[2];
+                            }
+                        });
+                    } else {
+                        const projectGridState = Array.isArray(loadedData) ? loadedData : loadedData.gridState;
+                        if (!Array.isArray(projectGridState) || !projectGridState[0]?.[0]?.hasOwnProperty('color')) {
+                             throw new Error("Invalid grid data in file.");
+                        }
+                        
+                        const loadedRows = projectGridState.length;
+                        const loadedCols = projectGridState[0].length;
+
+                        for (let r = 0; r < GRID_ROWS; r++) {
+                            for (let c = 0; c < GRID_COLS; c++) {
+                                const sourceR = Math.floor(r * (loadedRows / GRID_ROWS));
+                                const sourceC = Math.floor(c * (loadedCols / GRID_COLS));
+                                if (projectGridState[sourceR]?.[sourceC]) {
+                                    gridState[r][c] = projectGridState[sourceR][sourceC];
+                                }
                             }
                         }
                     }
@@ -967,6 +1013,11 @@
             const targetCol = Math.floor(x / cellWidth);
             const targetRow = Math.floor(y / cellHeight);
             const cellIndex = targetRow * cols + targetCol;
+            
+            // tranh thao tac to mau lap lai tren cung mot o
+            if (cellIndex === chiSoOCuoiCung) return;
+            chiSoOCuoiCung = cellIndex;
+
             const cellElement = drawingArea.children[cellIndex];
 
             if (cellElement) paintCell(cellElement);
@@ -1024,14 +1075,22 @@
                 paintCellFromCoordinates(point.clientX, point.clientY);
             } else if (isPanning) {
                 e.preventDefault();
-                drawingContainer.scrollLeft = scrollLeft - (point.pageX - startX);
-                drawingContainer.scrollTop = scrollTop - (point.pageY - startY);
+                // dung requestAnimationFrame de tranh lag do tinh toan dom
+                if (!dangYeuCauPan) {
+                    dangYeuCauPan = true;
+                    requestAnimationFrame(() => {
+                        drawingContainer.scrollLeft = scrollLeft - (point.pageX - startX);
+                        drawingContainer.scrollTop = scrollTop - (point.pageY - startY);
+                        dangYeuCauPan = false;
+                    });
+                }
             }
         }
 
         function handleCanvasEnd() {
             isPainting = false;
             isPanning = false;
+            chiSoOCuoiCung = -1; // reset khi nhat tay/chuot
             if (currentMode === 'pan') {
                 drawingContainer.style.cursor = 'grab';
             }
