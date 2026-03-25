@@ -391,8 +391,8 @@
         let drawingOpacity = 1.0;
         let isSaveOptionsVisible = false;
 
-        // bien toi uu hieu suat
-        let chiSoOCuoiCung = -1;
+        // bien toi uu hieu suat va khac phuc loi vi tri
+        let chiSoOCuoiCung = null;
         let dangYeuCauPan = false;
 
         // --- UTILITY FUNCTIONS ---
@@ -700,7 +700,6 @@
             }
         }
         
-        // === MODIFICATION START ===: Updated helper functions for save options
         function showSaveOptions() {
             if (isSaveOptionsVisible) return;
             // Shrink and show the "With Grid" button
@@ -728,7 +727,6 @@
             saveImageBtn.title = 'Save as PNG';
             isSaveOptionsVisible = false;
         }
-        // === MODIFICATION END ===
 
         function saveImage(withGrid) {
             const canvas = document.createElement('canvas');
@@ -1000,28 +998,6 @@
                 saveState();
             }
         }
-        
-        function paintCellFromCoordinates(clientX, clientY) {
-            const rect = drawingArea.getBoundingClientRect();
-            if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return;
-
-            const x = clientX - rect.left;
-            const y = clientY - rect.top;
-            const { cols, rows } = GRID_LEVELS[currentGridLevel];
-            const cellWidth = rect.width / cols;
-            const cellHeight = rect.height / rows;
-            const targetCol = Math.floor(x / cellWidth);
-            const targetRow = Math.floor(y / cellHeight);
-            const cellIndex = targetRow * cols + targetCol;
-            
-            // tranh thao tac to mau lap lai tren cung mot o
-            if (cellIndex === chiSoOCuoiCung) return;
-            chiSoOCuoiCung = cellIndex;
-
-            const cellElement = drawingArea.children[cellIndex];
-
-            if (cellElement) paintCell(cellElement);
-        }
 
         function handleCanvasStart(e) {
             const isToolbarVisible = topToolbar.classList.contains('visible') || bottomToolbar.classList.contains('visible');
@@ -1064,7 +1040,14 @@
             
             if (currentMode === 'paint') {
                 isPainting = true;
-                paintCellFromCoordinates(point.clientX, point.clientY);
+                // Voi PC (e.target) tra ve chinh xac the DOM dang hover (O(1), toc do anh sang)
+                // Voi Mobile (e.touches) phai dung fallback elementFromPoint vi e.target la diem cham dau tien
+                const el = e.touches ? document.elementFromPoint(point.clientX, point.clientY) : e.target;
+                
+                if (el && el.classList.contains('grid-cell')) {
+                    chiSoOCuoiCung = el.dataset.row + "-" + el.dataset.col;
+                    paintCell(el);
+                }
             }
         }
 
@@ -1072,7 +1055,15 @@
             const point = e.touches ? e.touches[0] : e;
             if (isPainting) {
                 e.preventDefault();
-                paintCellFromCoordinates(point.clientX, point.clientY);
+                const el = e.touches ? document.elementFromPoint(point.clientX, point.clientY) : e.target;
+                
+                if (el && el.classList.contains('grid-cell')) {
+                    const idO = el.dataset.row + "-" + el.dataset.col;
+                    if (idO !== chiSoOCuoiCung) {
+                        chiSoOCuoiCung = idO;
+                        paintCell(el);
+                    }
+                }
             } else if (isPanning) {
                 e.preventDefault();
                 // dung requestAnimationFrame de tranh lag do tinh toan dom
@@ -1090,7 +1081,7 @@
         function handleCanvasEnd() {
             isPainting = false;
             isPanning = false;
-            chiSoOCuoiCung = -1; // reset khi nhat tay/chuot
+            chiSoOCuoiCung = null; // reset khi nhat tay/chuot
             if (currentMode === 'pan') {
                 drawingContainer.style.cursor = 'grab';
             }
